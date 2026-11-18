@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Design System · Escalas</title>
+<script>(function(){var p;try{p=localStorage.getItem('escalas-theme')}catch(e){}p=p||'light';var d=p==='dark'||(p==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',d?'dark':'light');})();</script>
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/components.css">
+<script src="js/ui.js" defer></script>
+<style>
+  /* estilos só do catálogo */
+  .ds { max-width: 1080px; margin: 0 auto; padding: var(--space-8) var(--space-4) 80px; }
+  .ds section { margin-top: var(--space-10); }
+  .ds h2 { margin-bottom: var(--space-2); }
+  .ds .lead { color: var(--color-muted); margin-bottom: var(--space-5); font-size: var(--text-md); }
+  .sw { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--space-3); }
+  .sw div { border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden; background: var(--color-surface); font-size: var(--text-xs); }
+  .sw i { display: block; height: 52px; }
+  .sw span { display: block; padding: 8px 10px; font-family: var(--font-mono); color: var(--color-muted); }
+</style>
+</head>
+<body>
+<div class="ds">
+  <div class="page-head">
+    <div class="page-head__text">
+      <div class="page-head__eyebrow">Escalas</div>
+      <h1>Design System</h1>
+      <p class="page-head__sub">Tokens em <code>static/css/tokens.css</code>, componentes em <code>components.css</code>, layout em <code>layout.css</code>, macros Jinja em <code>templates/_ui.html</code>, comportamento em <code>static/js/ui.js</code>. Nenhuma cor literal nos componentes.</p>
+    </div>
+    <div class="page-head__actions">
+      <div class="segmented" role="group" aria-label="Tema">
+        <button type="button" data-theme-set="light" aria-pressed="false" data-tooltip="Claro"><svg class="icon"><use href="icons.svg#i-sun"/></svg><span class="sr-only">Claro</span></button>
+        <button type="button" data-theme-set="dark" aria-pressed="false" data-tooltip="Escuro"><svg class="icon"><use href="icons.svg#i-moon"/></svg><span class="sr-only">Escuro</span></button>
+        <button type="button" data-theme-set="system" aria-pressed="false" data-tooltip="Sistema"><svg class="icon"><use href="icons.svg#i-monitor"/></svg><span class="sr-only">Sistema</span></button>
+      </div>
+    </div>
+  </div>
+
+  <section>
+    <h2>Cores (tokens semânticos)</h2>
+    <p class="lead">Mudam automaticamente entre claro e escuro.</p>
+    <div class="sw">
+      <div><i style="background:var(--color-primary)"></i><span>primary</span></div>
+      <div><i style="background:var(--color-accent)"></i><span>accent</span></div>
+      <div><i style="background:var(--color-primary-soft)"></i><span>primary-soft</span></div>
+      <div><i style="background:var(--color-secondary)"></i><span>secondary</span></div>
+      <div><i style="background:var(--color-success)"></i><span>success</span></div>
+      <div><i style="background:var(--color-warning)"></i><span>warning</span></div>
+      <div><i style="background:var(--color-danger)"></i><span>danger</span></div>
+      <div><i style="background:var(--color-info)"></i><span>info</span></div>
+      <div><i style="background:var(--color-bg)"></i><span>bg</span></div>
+      <div><i style="background:var(--color-surface)"></i><span>surface</span></div>
+      <div><i style="background:var(--color-border)"></i><span>border</span></div>
+      <div><i style="background:var(--color-text)"></i><span>text</span></div>
+      <div><i style="background:var(--color-muted)"></i><span>muted</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Botões</h2>
+    <p class="lead"><code>.btn</code> + <code>--primary | --secondary | --outline | --ghost | --danger</code>, tamanhos <code>--sm | --lg</code>, <code>--block</code>, <code>--icon</code>, estado <code>aria-busy</code>.</p>
+    <div class="cluster-lg">
+      <button class="btn btn--primary"><svg class="icon icon--sm"><use href="icons.svg#i-save"/></svg>Primário</button>
+      <button class="btn">Secundário</button>
+      <button class="btn btn--outline">Contorno</button>
+      <button class="btn btn--ghost">Fantasma</button>
+      <button class="btn btn--danger">Perigo</button>
+      <button class="btn btn--primary btn--sm">Pequeno</button>
+      <button class="btn btn--primary btn--lg">Grande</button>
+      <button class="btn btn--outline btn--icon" aria-label="Mais"><svg class="icon"><use href="icons.svg#i-more"/></svg></button>
+      <button class="btn btn--primary" aria-busy="true">Salvando</button>
+      <button class="btn btn--primary" disabled>Desativado</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Formulários</h2>
+    <div class="grid-2">
+      <div class="card"><div class="card__body">
+        <div class="field"><label class="label" for="a">Input</label><input class="input" id="a" placeholder="Digite algo"><p class="help">Texto de ajuda.</p></div>
+        <div class="field"><label class="label" for="b">Select</label><select class="select" id="b"><option>Opção 1</option><option>Opção 2</option></select></div>
+        <div class="field"><label class="label" for="c">Textarea</label><textarea class="textarea" id="c" rows="2"></textarea></div>
+        <div class="field"><label class="label" for="d">Inválido / vaga</label><select class="select is-vacant" id="d"><option>— vaga —</option></select></div>
+        <div class="field"><div class="input-icon"><svg class="icon icon--sm"><use href="icons.svg#i-search"/></svg><input class="input" placeholder="Busca com ícone"></div></div>
+      </div></div>
+      <div class="card"><div class="card__body stack">
+        <label class="check"><input type="checkbox" checked> Checkbox</label>
+        <label class="check"><input type="radio" name="r" checked> Radio A</label>
+        <label class="check"><input type="radio" name="r"> Radio B</label>
+        <div class="chips">
+          <label class="chip"><input type="checkbox" checked><span>Chip ativo</span></label>
+          <label class="chip"><input type="checkbox"><span>Chip</span></label>
+          <label class="chip chip--danger"><input type="checkbox" checked><span>Chip perigo</span></label>
+        </div>
+        <label class="switch"><input type="checkbox" role="switch" checked><span class="switch__track"></span><span class="switch__text"><span>Interruptor</span><small>Com descrição</small></span></label>
+        <label class="option"><input type="checkbox"><span class="option__main"><span class="option__title">Opção grande (toque)</span><span class="option__meta">Usada no link pessoal</span></span><span class="option__state option__state--off">Posso</span><span class="option__state option__state--on">Não posso</span></label>
+        <label class="lock" data-tooltip="Travar"><input type="checkbox" aria-label="Travar"><svg class="icon icon--sm i-off"><use href="icons.svg#i-unlock"/></svg><svg class="icon icon--sm i-on"><use href="icons.svg#i-lock"/></svg></label>
+      </div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Badges, alertas e notificações</h2>
+    <div class="badges mb-4">
+      <span class="badge">Neutro</span><span class="badge badge--primary">Primário</span><span class="badge badge--success badge--dot">Sucesso</span>
+      <span class="badge badge--warning badge--dot">Aviso</span><span class="badge badge--danger badge--dot">Perigo</span><span class="badge badge--info badge--dot">Info</span><span class="badge badge--outline">Contorno</span>
+    </div>
+    <div class="stack">
+      <div class="alert alert--success" role="status"><svg class="icon"><use href="icons.svg#i-check-circle"/></svg><div class="alert__body">Escala salva.</div><button type="button" class="btn btn--ghost btn--icon btn--sm alert__close" data-dismiss aria-label="Fechar"><svg class="icon icon--sm"><use href="icons.svg#i-x"/></svg></button></div>
+      <div class="alert alert--warning"><svg class="icon"><use href="icons.svg#i-alert"/></svg><div class="alert__body"><div class="alert__title">Atenção</div><ul><li>Fulano tem 4 dias na mesma semana</li></ul></div></div>
+      <div class="alert alert--danger"><svg class="icon"><use href="icons.svg#i-x-circle"/></svg><div class="alert__body">Senha incorreta.</div></div>
+      <div class="alert alert--info"><svg class="icon"><use href="icons.svg#i-info"/></svg><div class="alert__body">Informação neutra.</div></div>
+      <div><button class="btn btn--outline" type="button" onclick="EscalasUI.toast('Notificação de exemplo')">Mostrar notificação (toast)</button>
+        <button class="btn btn--outline" type="button" data-copy="texto copiado">Copiar texto</button>
+        <span class="btn btn--ghost" data-tooltip="Eu sou um tooltip" tabindex="0">Passe o mouse (tooltip)</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Indicadores e gráficos</h2>
+    <div class="grid-stats mb-4">
+      <div class="stat stat--accent"><div class="stat__top"><span class="stat__label">Responderam</span><span class="stat__icon"><svg class="icon"><use href="icons.svg#i-users"/></svg></span></div><div class="stat__value">31 <small>/ 42</small></div><div class="stat__meta">74% da equipe</div><div class="progress"><div class="progress__bar" style="--value:74%"></div></div></div>
+      <div class="stat"><div class="stat__top"><span class="stat__label">Cultos</span><span class="stat__icon"><svg class="icon"><use href="icons.svg#i-calendar"/></svg></span></div><div class="stat__value">28</div><div class="stat__meta">10 no domingo</div></div>
+      <div class="stat stat--danger"><div class="stat__top"><span class="stat__label">Vagas</span><span class="stat__icon"><svg class="icon"><use href="icons.svg#i-alert"/></svg></span></div><div class="stat__value">3</div><div class="stat__meta">sem ninguém disponível</div></div>
+      <div class="stat stat--warning"><div class="stat__top"><span class="stat__label">Conflitos</span><span class="stat__icon"><svg class="icon"><use href="icons.svg#i-shield"/></svg></span></div><div class="stat__value">1</div><div class="stat__meta">verificação automática</div></div>
+    </div>
+    <div class="card"><div class="card__body"><ul class="barchart">
+      <li class="barchart__row"><span class="barchart__label">Beethoven</span><span class="barchart__track"><span class="barchart__bar" style="--value:100%"></span></span><span class="barchart__value">6</span></li>
+      <li class="barchart__row"><span class="barchart__label">Gisseli</span><span class="barchart__track"><span class="barchart__bar" style="--value:83%"></span></span><span class="barchart__value">5</span></li>
+      <li class="barchart__row barchart__row--low"><span class="barchart__label">Jan</span><span class="barchart__track"><span class="barchart__bar" style="--value:33%"></span></span><span class="barchart__value">2</span></li>
+    </ul></div></div>
+  </section>
+
+  <section>
+    <h2>Tabela, filtro e paginação</h2>
+    <p class="lead"><code>.table--stack</code> vira lista de cards abaixo de 720px. Filtro: <code>data-filter="#id"</code> + <code>data-filter-text</code>.</p>
+    <div class="card">
+      <div class="card__header"><div class="filter-bar"><div class="input-icon"><svg class="icon icon--sm"><use href="icons.svg#i-search"/></svg><input class="input input--sm" type="search" placeholder="Filtrar" data-filter="#t1" aria-label="Filtrar"></div></div></div>
+      <div class="card__body card__body--flush"><div class="table-wrap"><table class="table table--stack" id="t1">
+        <thead><tr><th>Pessoa</th><th>Função</th><th class="actions">Ação</th></tr></thead>
+        <tbody>
+          <tr data-filter-text="Ana Soprano"><td data-label="Pessoa"><span class="person"><span class="avatar">A</span><span class="person__name">Ana</span></span></td><td data-label="Função"><span class="badge badge--primary">Soprano</span></td><td class="actions"><a class="btn btn--outline btn--sm" href="#">Abrir</a></td></tr>
+          <tr data-filter-text="Bruno Baixo"><td data-label="Pessoa"><span class="person"><span class="avatar">B</span><span class="person__name">Bruno</span></span></td><td data-label="Função"><span class="badge badge--primary">Baixo</span></td><td class="actions"><a class="btn btn--outline btn--sm" href="#">Abrir</a></td></tr>
+          <tr data-filter-empty hidden><td colspan="3" class="text-muted text-center">Nada encontrado.</td></tr>
+        </tbody>
+      </table></div></div>
+      <div class="card__footer"><nav class="pagination" aria-label="Páginas"><a href="#" aria-label="Anterior">‹</a><a href="#" aria-current="page">1</a><a href="#">2</a><a href="#">3</a><a href="#" aria-label="Próxima">›</a></nav></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Navegação: breadcrumbs, abas, dropdown</h2>
+    <div class="card"><div class="card__body stack">
+      <nav class="breadcrumbs" aria-label="Exemplo"><ol><li><a href="#">Meses</a></li><li><a href="#">Janeiro/2027</a></li><li><span aria-current="page">Escala</span></li></ol></nav>
+      <div>
+        <div class="tabs" role="tablist" aria-label="Exemplo de abas">
+          <button class="tab" role="tab" aria-selected="true" aria-controls="p1" id="t-1">Visão geral</button>
+          <button class="tab" role="tab" aria-selected="false" aria-controls="p2" id="t-2" tabindex="-1">Detalhes</button>
+        </div>
+        <div class="tab-panel" role="tabpanel" id="p1" aria-labelledby="t-1">Conteúdo da primeira aba (setas ← → trocam).</div>
+        <div class="tab-panel" role="tabpanel" id="p2" aria-labelledby="t-2" hidden>Conteúdo da segunda aba.</div>
+      </div>
+      <details class="dropdown">
+        <summary class="btn btn--outline">Ações <svg class="icon icon--sm"><use href="icons.svg#i-chevron-down"/></svg></summary>
+        <div class="dropdown__menu" role="menu">
+          <a class="dropdown__item" href="#" role="menuitem"><svg class="icon icon--sm"><use href="icons.svg#i-download"/></svg>Baixar Excel</a>
+          <button class="dropdown__item" type="button" role="menuitem"><svg class="icon icon--sm"><use href="icons.svg#i-send"/></svg>Enviar avisos</button>
+        </div>
+      </details>
+    </div></div>
+  </section>
+
+  <section>
+    <h2>Modal e drawer</h2>
+    <p class="lead"><code>&lt;dialog&gt;</code> nativo: foco preso, Esc fecha, clique fora fecha. Abrir com <code>data-dialog-open="id"</code>.</p>
+    <div class="cluster">
+      <button class="btn btn--outline" type="button" data-dialog-open="m1">Abrir modal</button>
+      <button class="btn btn--outline" type="button" data-dialog-open="d1">Abrir drawer</button>
+    </div>
+    <dialog class="modal" id="m1" aria-labelledby="m1t">
+      <div class="modal__header"><h2 class="modal__title" id="m1t">Gerar novo link?</h2><button class="btn btn--ghost btn--icon btn--sm" type="button" data-dialog-close aria-label="Fechar"><svg class="icon icon--sm"><use href="icons.svg#i-x"/></svg></button></div>
+      <div class="modal__body">O link antigo deixará de funcionar.</div>
+      <div class="modal__footer"><button class="btn" type="button" data-dialog-close>Cancelar</button><button class="btn btn--primary" type="button" data-dialog-close="ok">Continuar</button></div>
+    </dialog>
+    <dialog class="drawer" id="d1" aria-labelledby="d1t">
+      <div class="modal__header"><h2 class="modal__title" id="d1t">Painel lateral</h2><button class="btn btn--ghost btn--icon btn--sm" type="button" data-dialog-close aria-label="Fechar"><svg class="icon icon--sm"><use href="icons.svg#i-x"/></svg></button></div>
+      <div class="modal__body">Conteúdo do drawer.</div>
+    </dialog>
+  </section>
+
+  <section>
+    <h2>Estado vazio e barra de ação</h2>
+    <div class="card"><div class="empty"><div class="empty__icon"><svg class="icon icon--lg"><use href="icons.svg#i-calendar"/></svg></div><div class="empty__title">Nenhum mês criado ainda</div><p class="text-md">Crie o primeiro mês.</p></div></div>
+    <div class="action-bar"><span class="action-bar__text">Barra fixa no rodapé da área de conteúdo.</span><button class="btn btn--primary">Salvar</button></div>
+  </section>
+</div>
+</body>
+</html>

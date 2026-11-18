@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% from "_ui.html" import icon, stat, badge, avatar, month_status, page_head, month_tabs %}
+{% block title %}{{ mt }} · {{ igreja }}{% endblock %}
+{% block crumbs %}<li><a href="{{ url_for('admin_index') }}">Meses</a></li><li><span aria-current="page">{{ mt }}</span></li>{% endblock %}
+{% block body %}
+{% call page_head(mt, 'Colete as indisponibilidades, ajuste os cultos e gere a escala.') %}
+<form method="post" action="{{ url_for('month_status', mid=m.id) }}" class="cluster">
+  <label class="sr-only" for="status">Situação do mês</label>
+  <select class="select select--auto" id="status" name="status"><option value="coleta" {% if m.status=='coleta' %}selected{% endif %}>Coletando indisponibilidades</option><option value="rascunho" {% if m.status=='rascunho' %}selected{% endif %}>Rascunho da escala</option><option value="publicada" {% if m.status=='publicada' %}selected{% endif %}>Escala publicada</option></select>
+  <button class="btn btn--outline">Mudar</button>
+</form>
+{% endcall %}
+{{ month_tabs(m, 'geral') }}
+{%- set dl = deadline_info(m) -%}
+
+<div class="stack-lg mb-6">
+  {# ---------------- 1. Cultos (página própria: /admin/mes/<id>/cultos) ---------------- #}
+  {%- set k = namespace(ex=0, notema=0) -%}
+  {%- for s in S %}{% if s.exempt %}{% set k.ex = k.ex + 1 %}{% endif %}{% if not s.tema %}{% set k.notema = k.notema + 1 %}{% endif %}{% endfor -%}
+  <section class="card" aria-labelledby="sec-cultos">
+    <div class="card__header">
+      <h2 class="card__title" id="sec-cultos"><span class="step">1</span>Cultos do mês</h2>
+      <p class="card__desc">Temas, pregador, funções de cada culto, prazo de resposta e cultos extras. Louvor Kids e Intercessão são automáticos.</p>
+    </div>
+    <div class="card__body cluster-lg">
+      <div class="badges list__main">
+        {{ badge('%d culto%s'|format(S|length, '' if S|length == 1 else 's'), 'primary') }}
+        {{ badge('Prazo: ' ~ (dl.label or 'não definido') ~ (' (encerrado)' if dl.closed else ''), 'warning' if dl.closed else 'outline') }}
+        {% if k.ex %}{{ badge('%d com banda fixa'|format(k.ex), 'info') }}{% endif %}
+        {% if k.notema %}{{ badge('%d sem tema'|format(k.notema), 'warning') }}{% endif %}
+      </div>
+      <a class="btn btn--outline" href="{{ url_for('services_page', mid=m.id) }}">{{ icon('calendar', 'sm') }}Cultos {{ icon('chevron-right', 'sm') }}</a>
+    </div>
+  </section>
+
+  {# ---------------- 2. Gerar ---------------- #}
+  <section class="card" aria-labelledby="sec-gerar">
+    <div class="card__header">
+      <h2 class="card__title" id="sec-gerar"><span class="step">2</span>Gerar a escala</h2>
+      <p class="card__desc">Pode levar até alguns segundos. Células ajustadas à mão ficam travadas e são mantidas.</p>
+    </div>
+    <div class="card__body">
+      <form method="post" action="{{ url_for('generate', mid=m.id) }}" class="cluster-lg" data-busy>
+        <button class="btn btn--primary btn--lg" onclick="this.textContent='Calculando…'">{{ 'Gerar de novo (mantém travadas)' if has_assign else 'Gerar escala' }}</button>
+        {% if has_assign %}<a class="btn btn--outline btn--lg" href="{{ url_for('schedule_page', mid=m.id) }}">Ver / ajustar escala {{ icon('chevron-right', 'sm') }}</a>{% endif %}
+      </form>
+    </div>
+  </section>
+</div>
+
+<div class="grid-stats mb-6">
+  {{ stat('Responderam', nresp, 'users', suffix='/ ' ~ n, tone='accent', pct=(100 * nresp / n if n else 0),
+          meta='%d%% da equipe ativa'|format(100 * nresp / n if n else 0)) }}
+  {%- set cnt = namespace(sun=0) -%}
+  {%- for s in S %}{% if s.date.weekday() == 6 %}{% set cnt.sun = cnt.sun + 1 %}{% endif %}{% endfor -%}
+  {{ stat('Cultos no mês', S|length, 'calendar', meta='%d no domingo · %d em outros dias'|format(cnt.sun, S|length - cnt.sun)) }}
+  {{ stat('Prazo de resposta', dl.label or '—', 'clock',
+          meta=('encerrado: link só para consulta' if dl.closed else ('respostas abertas até o fim do dia' if dl.date else 'sem prazo definido')),
+          tone='warning' if dl.closed else '') }}
+  <div class="stat"><div class="stat__top"><span class="stat__label">Situação</span><span class="stat__icon">{{ icon('target') }}</span></div><div class="mt-2">{{ month_status(m.status) }}</div></div>
+</div>
+
+{# ---------------- 3. Respostas ---------------- #}
+<section class="card" aria-labelledby="sec-respostas">
+  <div class="card__header">
+    <h2 class="card__title" id="sec-respostas"><span class="step">3</span>Quem já respondeu <span class="text-muted num">({{ nresp }}/{{ n }})</span></h2>
+    <div class="input-icon">{{ icon('search', 'sm') }}<input class="input input--sm" type="search" placeholder="Buscar pessoa" aria-label="Buscar pessoa" data-filter="#tabela-respostas"></div>
+    <p class="card__desc">Envie o link pessoal de cada um. Cadastre o celular em Pessoas para o botão do WhatsApp aparecer.</p>
+  </div>
+  <div class="card__body card__body--flush">
+    <div class="table-wrap">
+      <table class="table table--stack" id="tabela-respostas">
+        <thead><tr><th>Pessoa</th><th>Situação</th><th>Indisponível · motivo</th><th class="actions">Ação</th></tr></thead>
+        <tbody>
+        {% for r in rows %}
+          <tr data-filter-text="{{ r.p.name }}">
+            <td data-label="Pessoa"><span class="person">{{ avatar(r.p.name) }}<span class="person__name">{{ r.p.name }}</span></span></td>
+            <td data-label="Situação">{% if r.at %}{{ badge('Respondeu', 'success', dot=True) }}{% else %}{{ badge('Aguardando', 'warning', dot=True) }}{% endif %}</td>
+            <td data-label="Motivo">
+              {%- if r.nmarked %}<div>{{ badge('%d culto%s'|format(r.nmarked, '' if r.nmarked == 1 else 's'), 'danger') }}</div>
+                {%- if r.motivo %}<p class="motivo-text" title="{{ r.motivo }}">{{ r.motivo }}</p>{% else %}<p class="motivo-text">sem motivo informado</p>{% endif %}
+              {%- elif r.at %}<span class="text-sm text-muted">pode em todos</span>
+              {%- else %}<span class="text-sm text-muted">—</span>{% endif -%}
+            </td>
+            <td class="actions">{% if r.wa %}<a class="btn btn--outline btn--sm" href="{{ r.wa }}" target="_blank" rel="noopener">{{ icon('message', 'sm') }}{{ 'Lembrar' if not r.at else 'Reenviar' }} no WhatsApp</a>{% else %}<span class="text-sm text-muted">sem celular</span>{% endif %}</td>
+          </tr>
+        {% endfor %}
+          <tr data-filter-empty hidden><td colspan="4" class="text-muted text-center">Ninguém encontrado.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endblock %}

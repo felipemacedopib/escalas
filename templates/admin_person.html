@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% from "_ui.html" import icon, badge, avatar, switch, page_head %}
+{% block title %}{{ p.name }} · {{ igreja }}{% endblock %}
+{% block crumbs %}<li><a href="{{ url_for('people_page') }}">Pessoas</a></li><li><span aria-current="page">{{ p.name }}</span></li>{% endblock %}
+{% block body %}
+<div class="page-head">
+  <div class="page-head__text cluster-lg">
+    {{ avatar(p.name, 'lg', foto_url(p)) }}
+    <div>
+      <h1>{{ p.name }}</h1>
+      <div class="badges mt-2">
+        {% if p.active %}{{ badge('Ativo(a)', 'success', dot=True) }}{% else %}{{ badge('Inativo(a)', 'outline', dot=True) }}{% endif %}
+        {% for r in p.roles|sort %}{{ badge(r, 'primary') }}{% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="split">
+  {# ---------- Dados da pessoa (ordem dos campos preservada) ---------- #}
+  <form method="post" class="card" data-busy>
+    <div class="card__header"><h2 class="card__title">{{ icon('user') }}Contato</h2></div>
+    <div class="card__body grid-2">
+      <div class="field"><label class="label" for="name">Nome</label><input class="input" type="text" id="name" name="name" value="{{ p.name }}"></div>
+      <div class="field"><label class="label" for="phone">Celular com DDD</label><input class="input" type="tel" id="phone" name="phone" value="{{ p.phone }}" placeholder="(41) 99999-9999" inputmode="numeric" autocomplete="tel-national" maxlength="20" data-phone-br aria-describedby="phone-help"><p class="help" id="phone-help" data-phone-help>Celular com WhatsApp: DDD + 9 dígitos. Usado nos botões do WhatsApp.</p></div>
+    </div>
+
+    <div class="card__section" id="funcoes">
+      <fieldset class="fieldset">
+        <legend class="card__title mb-4">{{ icon('music') }}Funções que a pessoa exerce</legend>
+        <div class="chips">{% for r in BAND %}<label class="chip"><input type="checkbox" name="role" value="{{ r }}" {% if r in p.roles %}checked{% endif %}><span>{{ r }}</span></label>{% endfor %}</div>
+      </fieldset>
+      <div class="field mt-4">
+        <label class="label" for="nova_funcao">Não encontrou a função? Crie uma nova</label>
+        <div class="cluster role-new">
+          <input class="input" type="text" id="nova_funcao" name="nova_funcao" maxlength="30" placeholder="Ex.: Saxofone, Back vocal" autocomplete="off" aria-describedby="nova_funcao_help">
+          <label class="sr-only" for="nova_funcao_tipo">Tipo da função</label>
+          <select class="select select--auto" id="nova_funcao_tipo" name="nova_funcao_tipo">{% for k, v in ROLE_TYPES.items() %}<option value="{{ k }}"{% if k == 'instrumento' %} selected{% endif %}>{{ v }}</option>{% endfor %}</select>
+          <button class="btn btn--outline" name="acao" value="funcao_nova" formnovalidate>{{ icon('plus', 'sm') }}Criar e marcar</button>
+        </div>
+        <p class="help" id="nova_funcao_help">A função nova fica marcada para {{ p.name }} e disponível para todos. Para ela entrar na escala, marque-a nos cultos em que é usada. Tipo: no mesmo culto a pessoa pode ter 1 instrumento e 1 voz (e ministrar); “Outra” não acumula com nada. As alterações acima também são salvas.</p>
+      </div>
+    </div>
+
+    {# Sem restrições fixas por dia da semana: a indisponibilidade é informada pela própria pessoa no link pessoal. #}
+
+    <div class="card__section">
+      <h3 class="card__title mb-4">{{ icon('sliders') }}Limites e observações</h3>
+      <div class="field"><label class="label" for="max_month">Máximo de cultos por mês <span class="text-muted">(opcional)</span></label><input class="input input--narrow" type="number" id="max_month" name="max_month" min="0" value="{{ p.max_month or '' }}"></div>
+      <div class="field"><label class="label" for="notes">Observações</label><textarea class="textarea" id="notes" name="notes" rows="2">{{ p.notes }}</textarea></div>
+    </div>
+
+    <div class="card__section">
+      {{ switch('active', 'Ativo(a)', p.active, 'Desmarque se saiu da equipe') }}
+    </div>
+
+    <div class="card__footer">
+      <button class="btn btn--primary">{{ icon('save', 'sm') }}Salvar</button>
+    </div>
+  </form>
+
+  <div class="stack-lg">
+    {# ---------- Duplas ---------- #}
+    <section class="card">
+      <div class="card__header">
+        <h2 class="card__title">{{ icon('heart-handshake') }}Duplas <span class="text-muted num">({{ pairs|length }} de {{ max_pairs }})</span></h2>
+        <p class="card__desc">Cada dupla liga {{ p.name }} a uma outra pessoa. Máximo de {{ max_pairs }} duplas por pessoa. <a href="{{ url_for('pairs_page') }}">Ver todas as duplas</a></p>
+      </div>
+      <div class="card__body">
+        <ul class="list">
+        {% for q in pairs %}
+          <li class="list__item">
+            <form method="post" class="cluster list__main">
+              {{ avatar(q.name) }}
+              <span class="list__main"><b class="text-md">{{ q.name }}</b> <span class="text-sm text-muted">(preferência {{ {1: 'fraca', 3: 'normal', 6: 'forte'}.get(q.weight, 'peso %d'|format(q.weight)) }})</span></span>
+              <button class="btn btn--danger btn--sm" name="acao" value="par_del:{{ q.id }}">remover</button>
+            </form>
+          </li>
+        {% else %}
+          <li class="text-muted text-md">Nenhuma.</li>
+        {% endfor %}
+        </ul>
+      </div>
+      {% if pairs|length > max_pairs %}
+      {%- set extra = pairs|length - max_pairs %}
+      <div class="card__footer text-sm" style="flex-wrap:nowrap;gap:var(--space-2);align-items:flex-start;color:var(--color-danger)">{{ icon('alert', 'sm') }}<span><b>Acima do limite:</b> {{ p.name }} tem {{ pairs|length }} duplas, e o máximo é {{ max_pairs }}. Remova {{ extra }} dupla{{ 's' if extra > 1 }} acima.</span></div>
+      {% elif pairs|length >= max_pairs %}
+      <div class="card__footer text-sm text-muted" style="flex-wrap:nowrap;gap:var(--space-2);align-items:flex-start">{{ icon('lock', 'sm') }}<span>Limite de {{ max_pairs }} duplas atingido. Para adicionar outra, remova uma das duplas acima.</span></div>
+      {% elif others %}
+      <form method="post" class="card__footer stack" data-busy>
+        <input type="hidden" name="acao" value="par_add">
+        <div class="field mt-0">
+          <label class="label" for="outro">Adicionar dupla com</label>
+          <select class="select" id="outro" name="outro">{% for o in others %}<option value="{{ o.id }}">{{ o.name }}</option>{% endfor %}</select>
+        </div>
+        <div class="cluster">
+          <label class="sr-only" for="peso">Peso</label>
+          <select class="select select--auto" id="peso" name="peso"><option value="1">preferência fraca</option><option value="3" selected>preferência normal</option><option value="6">preferência forte</option></select>
+          <button class="btn btn--outline">{{ icon('plus', 'sm') }}Adicionar</button>
+        </div>
+      </form>
+      {% else %}
+      <div class="card__footer text-sm text-muted">Não há ninguém disponível: as outras pessoas já formam dupla com {{ p.name }} ou já têm {{ max_pairs }} duplas.</div>
+      {% endif %}
+    </section>
+
+    {# ---------- Link pessoal ---------- #}
+    <section class="card">
+      <div class="card__header">
+        <h2 class="card__title">{{ icon('link') }}Link pessoal</h2>
+        <p class="card__desc">A pessoa usa este link para informar indisponibilidades e ver a escala.</p>
+      </div>
+      <div class="card__body stack">
+        <div class="code">{{ link }}</div>
+        <button type="button" class="btn btn--outline" data-copy="{{ link }}" data-copy-msg="Link copiado!">{{ icon('copy', 'sm') }}Copiar link</button>
+      </div>
+      <form method="post" class="card__footer">
+        <button class="btn btn--ghost" name="acao" value="token" data-confirm="Gerar um novo link para {{ p.name }}?" data-confirm-text="O link atual deixará de funcionar. Será preciso enviar o novo link para a pessoa." data-confirm-tone="warning" data-confirm-icon="refresh" data-confirm-ok="Gerar novo link">{{ icon('refresh', 'sm') }}Gerar novo link</button>
+      </form>
+    </section>
+  </div>
+</div>
+<script src="{{ url_for('static', filename='js/phone.js') }}" defer></script>
+{% endblock %}

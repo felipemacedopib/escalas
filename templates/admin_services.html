@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% from "_ui.html" import icon, badge, datebox, switch, page_head, month_tabs %}
+{% block title %}Cultos {{ mt }} · {{ igreja }}{% endblock %}
+{% block crumbs %}<li><a href="{{ url_for('admin_index') }}">Meses</a></li><li><a href="{{ url_for('month_page', mid=m.id) }}">{{ mt }}</a></li><li><span aria-current="page">Cultos</span></li>{% endblock %}
+{% block body %}
+{{ page_head('Cultos — ' ~ mt, 'Ajuste temas, pregador e quais funções cada culto precisa. Louvor Kids (domingos) e Intercessão (2 por culto) são escalados automaticamente. “Banda fixa” desliga a regra manhã/noite do domingo.') }}
+{{ month_tabs(m, 'cultos') }}
+
+{# “Adicionar culto” é um <form> separado (acao=novo + campos nova_*), para não roubar o Enter do formulário de salvar.
+   O servidor (services_save) trata os dois casos de forma independente. #}
+<form method="post" action="{{ url_for('services_save', mid=m.id) }}" class="card mb-6" aria-labelledby="sec-novo-culto">
+  <div class="card__header"><h2 class="card__title" id="sec-novo-culto">{{ icon('plus') }}Adicionar culto</h2></div>
+  <div class="card__body">
+    <div class="cluster-lg">
+      <label class="sr-only" for="nova_data">Data</label><input class="input input--auto" type="date" id="nova_data" name="nova_data" required>
+      <label class="sr-only" for="nova_turno">Turno</label><select class="select select--auto" id="nova_turno" name="nova_turno"><option>Noite</option><option>Manhã</option></select>
+      <label class="sr-only" for="nova_tipo">Tipo</label><select class="select select--auto" id="nova_tipo" name="nova_tipo"><option value="normal">banda completa</option><option value="sexta">só teclado (Influe)</option></select>
+      <button class="btn btn--outline" name="acao" value="novo">{{ icon('plus', 'sm') }}Adicionar</button>
+    </div>
+  </div>
+</form>
+
+<form method="post" action="{{ url_for('services_save', mid=m.id) }}" class="stack">
+  <section class="card" aria-labelledby="sec-cultos">
+    <div class="card__header">
+      <h2 class="card__title" id="sec-cultos">{{ icon('calendar') }}Cultos do mês <span class="text-muted num">({{ S|length }})</span></h2>
+    </div>
+    <div class="card__body">
+      <div class="field mb-6">
+        {%- set dl = deadline_info(m) %}
+        <label class="label" for="deadline">Prazo para as pessoas responderem</label>
+        <input class="input input--auto" type="date" id="deadline" name="deadline" value="{{ dl.iso }}">
+        <p class="help">Vale até o fim desse dia. Depois, o link pessoal fica só para consulta e ninguém consegue mais alterar. Deixe em branco para não ter prazo.
+          {%- if m.deadline and not dl.date %} <b class="req">O prazo atual (“{{ m.deadline }}”) não é uma data válida e não está sendo aplicado.</b>{% endif %}</p>
+      </div>
+      {% for s in S %}
+      <details class="disclosure">
+        <summary>
+          {{ datebox(s.date, WDS[s.date.weekday()]) }}
+          <span class="list__main">
+            <b>{{ WD[s.date.weekday()] }} · {{ s.turn }}</b>
+            <span class="text-sm text-muted block">{{ s.date|dmy }} · {{ s.tema or 'Sem tema' }}{% if s.pregador %} · {{ s.pregador }}{% endif %}</span>
+          </span>
+          <span class="badges">
+            {% if s.exempt %}{{ badge('Banda fixa', 'info') }}{% endif %}
+            {{ badge(s.roles|length ~ (' função' if s.roles|length == 1 else ' funções'), 'outline') }}
+          </span>
+          {{ icon('chevron-down', cls='disclosure__chev') }}
+        </summary>
+        <div class="disclosure__body stack">
+          <div class="cluster-lg">
+            <label class="chip chip--danger"><input type="checkbox" name="del_{{ s.id }}"><span>{{ icon('trash', 'sm') }}Excluir este culto</span></label>
+            <span class="spacer"></span>
+            {{ switch('ex_' ~ s.id, 'Banda fixa', s.exempt, 'Desliga a regra manhã/noite do domingo') }}
+          </div>
+          <div class="grid-2">
+            <div class="field"><label class="label" for="tema_{{ s.id }}">Tema</label><input class="input" type="text" id="tema_{{ s.id }}" name="tema_{{ s.id }}" value="{{ s.tema }}" placeholder="Tema"></div>
+            <div class="field"><label class="label" for="preg_{{ s.id }}">Pregador</label><input class="input" type="text" id="preg_{{ s.id }}" name="preg_{{ s.id }}" value="{{ s.pregador }}" placeholder="Pregador"></div>
+          </div>
+          <fieldset class="fieldset">
+            <legend class="label">Funções necessárias</legend>
+            <div class="chips">{% for r in BAND %}<label class="chip"><input type="checkbox" name="roles_{{ s.id }}" value="{{ r }}" {% if r in s.base_roles %}checked{% endif %}><span>{{ r }}</span></label>{% endfor %}</div>
+            <p class="help help--icon">{{ icon('zap', 'sm') }}<span>Automático: {% if s.date.weekday() == 6 %}<b>Louvor Kids</b> (1 instrumento + 1 voz) e {% endif %}<b>2 intercessores</b>.</span></p>
+          </fieldset>
+        </div>
+      </details>
+      {% else %}
+      <p class="text-muted">Nenhum culto neste mês. Adicione abaixo.</p>
+      {% endfor %}
+    </div>
+    <div class="card__footer">
+      <button class="btn btn--primary">{{ icon('save') }}Salvar cultos</button>
+      <span class="text-sm text-muted">Salva prazo, temas, funções, “banda fixa” e exclusões marcadas.</span>
+    </div>
+  </section>
+</form>
+{% endblock %}

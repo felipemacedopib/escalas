@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+{% from "_ui.html" import icon, alert, badge, datebox, empty, page_head, avatar %}
+{% block title %}{{ p.name }} · {{ igreja }}{% endblock %}
+{% block body %}
+{%- set my_photo = foto_url(p) -%}
+<div class="page-head profile-head">
+  <div class="profile">
+    <span class="profile__pic" data-photo-preview>{{ avatar(p.name, 'xl', my_photo) }}</span>
+    <div class="profile__text">
+      <div class="page-head__eyebrow">Seu link pessoal</div>
+      <div class="profile__title">
+        <h1>Olá, {{ p.name }}!</h1>
+        <form method="post" action="{{ url_for('photo_upload', token=p.token) }}" enctype="multipart/form-data" class="profile__actions" data-photo-form>
+          <input type="file" id="foto-input" name="foto" accept="image/*" class="sr-only" data-photo-input>
+          <label for="foto-input" class="btn btn--outline btn--sm" data-photo-btn>{{ icon('camera', 'sm') }}<span>{{ 'Alterar foto' if my_photo else 'Adicionar foto' }}</span></label>
+          <noscript><button class="btn btn--sm">Enviar foto</button></noscript>
+          {% if my_photo %}<button class="btn btn--ghost btn--sm btn--icon btn--icon-danger" name="acao" value="remover" formnovalidate
+            aria-label="Remover foto" data-tooltip="Remover foto"
+            data-confirm="Remover sua foto?" data-confirm-text="Volta a aparecer a inicial do seu nome." data-confirm-ok="Remover foto">{{ icon('trash', 'sm') }}</button>{% endif %}
+        </form>
+      </div>
+      <p class="text-sm text-danger mt-2" data-photo-error hidden></p>
+    </div>
+  </div>
+</div>
+
+<div class="stack-lg">
+{% for m, S in forms %}
+{%- set dl = deadline_info(m) -%}
+{%- set ro = dl.closed -%}
+{%- set my_err = err[1] if err and err[0] == m.id else None -%}
+<form method="post" data-busy{% if not ro %} data-confirm="Tem certeza sobre as datas informadas?" data-confirm-tone="primary" data-confirm-icon="calendar" data-confirm-ok="Sim, salvar" data-confirm-cancel="Revisar"{% endif %}>
+  <input type="hidden" name="month_id" value="{{ m.id }}">
+  <section class="card">
+    <div class="card__header">
+      <h2 class="card__title">{{ icon('calendar') }}Indisponibilidades de {{ month_title(m.ym) }}</h2>
+      {% if ro %}{{ badge('Prazo encerrado em ' ~ dl.label, 'danger', dot=True) }}
+      {% elif dl.label %}{{ badge('Prazo: até ' ~ dl.label, 'warning', dot=True) }}{% endif %}
+      {% if ro %}<p class="card__desc">Estas são as respostas que você enviou. O prazo terminou, então elas ficam só para consulta.</p>
+      {% else %}<p class="card__desc"><b>MARQUE</b> no calendário os dias em que você <b>NÃO</b> pode participar: dias separados ou um período. Se você pode em todos, <b>DEIXE TUDO EM BRANCO</b> e toque em salvar. Lembrando que a sua indisponibilidade <b>PODE SOBRECARREGAR</b> outra pessoa.</p>{% endif %}
+    </div>
+    <div class="card__body">
+      {% if my_err or ro or m.id in done or blocked %}<div class="stack mb-4">
+        {% if my_err %}{% call alert('danger') %}{{ my_err }}{% endcall %}{% endif %}
+        {% if ro %}{% call alert('warning', 'Prazo encerrado', live=False) %}O prazo para responder terminou em {{ dl.label }}. Para alterar algo, fale com o responsável pela escala.{% endcall %}
+        {% elif m.id in done %}{% call alert('success', live=False) %}Você já respondeu. Pode ajustar e salvar de novo quando quiser dentro do período de corte.{% endcall %}{% endif %}
+        {% if blocked %}{% call alert('info', live=False) %}Já está cadastrado que você não é escalado(a): {{ blocked|join(', ') }}.{% endcall %}{% endif %}
+      </div>{% endif %}
+
+      {# Calendário: montado por static/js/calendar.js a partir dos checkboxes abaixo (que continuam sendo o que é enviado) #}
+      <div class="cal{% if ro %} cal--ro{% endif %}" data-cal data-ym="{{ m.ym }}" {% if ro %}data-readonly{% endif %} hidden></div>
+
+      <details class="disclosure cal-details" open data-cal-details>
+      <summary><span class="list__main"><b>Selecione o período todo ou somente meio período</b><span class="text-sm block cal-details__sub">Para marcar só a manhã ou só a noite de um dia</span></span>{{ icon('chevron-down', cls='disclosure__chev') }}</summary>
+      <div class="disclosure__body">
+      {% set ns = namespace(wk=None) %}
+      {% for s in S %}
+        {% set wk = (s.date.toordinal() - s.date.weekday()) %}
+        {% if wk != ns.wk %}{% set ns.wk = wk %}<div class="group-label">Semana de {{ s.date.strftime('%d/%m') }}</div>{% endif %}
+        <label class="option">
+          <input type="checkbox" name="nao_{{ s.id }}" data-date="{{ s.date.isoformat() }}" data-turn="{{ s.turn }}" {% if (s.date.isoformat(), s.turn) in un %}checked{% endif %}{% if ro %} disabled{% endif %}>
+          {{ datebox(s.date, WDS[s.date.weekday()]) }}
+          <span class="option__main">
+            <span class="option__title">{{ WD[s.date.weekday()] }} · {{ s.turn }}</span>
+            <span class="option__meta">{{ s.date|dmy }}{% if s.tema %} · {{ s.tema }}{% endif %}</span>
+          </span>
+          <span class="option__state option__state--off">Posso</span>
+          <span class="option__state option__state--on">Não posso</span>
+        </label>
+      {% endfor %}
+      </div>
+      </details>
+
+      {# Motivo: obrigatório quando há algum dia marcado (conferido no navegador e no servidor) #}
+      <div class="field mt-6" data-motivo>
+        <label class="label" for="motivo-{{ m.id }}">Motivo da indisponibilidade <span class="req" data-motivo-req hidden>(obrigatório)</span></label>
+        <textarea class="textarea{% if my_err %} is-invalid{% endif %}" id="motivo-{{ m.id }}" name="motivo" rows="3" maxlength="{{ motivo_max }}"
+                  placeholder="Ex.: viagem a trabalho de 12 a 18/01; formatura do meu filho no dia 24."
+                  aria-describedby="motivo-help-{{ m.id }}" {% if my_err %}aria-invalid="true" autofocus{% endif %}{% if ro %} readonly{% endif %}>{{ motivos.get(m.id, '') }}</textarea>
+        <p class="help" id="motivo-help-{{ m.id }}">{% if ro %}Motivo que você enviou.{% else %}Obrigatório se você marcou algum dia. Só o responsável pela escala vê este texto.{% endif %}</p>
+      </div>
+    </div>
+  </section>
+  {% if not ro %}
+  <div class="action-bar">
+    <span class="action-bar__text">Marque os dias em que você não pode e conte o motivo.</span>
+    <button class="btn btn--primary btn--lg">{{ icon('save') }}Salvar minhas indisponibilidades</button>
+  </div>
+  {% endif %}
+</form>
+{% endfor %}
+
+{#- só quando não há coleta aberta NEM escala publicada (com escala publicada, a página já tem conteúdo) -#}
+{% if not forms and not mine %}
+<section class="card">{{ empty('clock', 'Nenhuma coleta aberta no momento', 'Quando abrir a coleta de indisponibilidades, você receberá um aviso.') }}</section>
+{% endif %}
+
+{% for m, items in mine %}
+<section class="card">
+  <div class="card__header"><h2 class="card__title">{{ icon('music') }}Sua escala — {{ month_title(m.ym) }}</h2></div>
+  <div class="card__body">
+    {% if not items %}<p class="text-muted">Você não foi escalado(a) neste mês.</p>{% endif %}
+    {% if done_swap %}
+    <div class="swap-done mb-4" role="status">
+      <div class="swap-done__title">{{ icon('check-circle', 'sm') }}<b>Troca feita: {{ done_swap.t.role }}</b> — {{ done_swap.t.new_name }}{% if done_swap.t.old_name %} no lugar de {{ done_swap.t.old_name }}{% endif %}</div>
+      <p class="text-sm">Avise as pessoas pelo WhatsApp (a mensagem já vai pronta):</p>
+      <div class="cluster mt-2">
+        {% for msg in done_swap.msgs %}
+          {% if msg.wa %}<a class="btn btn--outline btn--sm" href="{{ msg.wa }}" target="_blank" rel="noopener">{{ icon('message', 'sm') }}Avisar {{ msg.name }} ({{ msg.who }})</a>
+          {% else %}<span class="text-sm text-muted">{{ msg.name }} ({{ msg.who }}) não tem celular cadastrado.</span>{% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+    {% if items %}<p class="text-sm text-muted mb-4">Toque em um culto para ver quem está com você.</p>{% endif %}
+    <div class="stack escala-list">
+      {% for s, rs, team, rate, swap_ui in items %}
+      <details class="disclosure escala-item{% if s.date == today %} is-today{% endif %}" id="culto-{{ s.id }}"{% if open_sid == s.id %} open{% endif %}>
+        <summary>
+          {{ datebox(s.date, WDS[s.date.weekday()]) }}
+          <div class="list__main">
+            <div><b>{{ WD[s.date.weekday()] }}, {{ s.date|dmy }}</b> <span class="text-muted">({{ s.turn }})</span>{% if s.date == today %} {{ badge('Hoje', 'danger', dot=True) }}{% endif %}</div>
+            <div class="badges mt-2">{% for r in rs %}{{ badge(r, 'primary') }}{% endfor %}
+              {%- if swap_ui %} {{ badge('Você pode trocar a banda', 'info') }}{% endif %}
+              {%- if rate.can and rate.state == 'aberta' %}
+                {% if rate.done >= rate.total %}{{ badge('Você avaliou ✓', 'success') }}{% else %}{{ badge('Avalie até ' ~ (rate.end|dmy), 'warning', dot=True) }}{% endif %}
+              {%- endif %}</div>
+          </div>
+          {{ icon('chevron-down', cls='disclosure__chev') }}
+        </summary>
+        <div class="disclosure__body">
+          {% set editing = rate.can and rate.state == 'aberta' %}
+          {% if editing %}<form method="post" action="{{ url_for('rate', token=p.token) }}" data-busy>
+            <input type="hidden" name="service_id" value="{{ s.id }}">{% endif %}
+          {% if s.tema or s.pregador %}<p class="text-sm text-muted mb-4">{% if s.tema %}Tema: <b>{{ s.tema }}</b>{% endif %}{% if s.tema and s.pregador %} · {% endif %}{% if s.pregador %}Pregador: <b>{{ s.pregador }}</b>{% endif %}</p>{% endif %}
+          {% if rate.can %}
+            {% if rate.state == 'aberta' %}<p class="rate-note">{{ icon('star', 'sm') }}<span>Avalie os colegas da banda deste culto (opcional), uma nota para cada função. Para tirar uma nota, toque de novo na mesma estrela. Só o responsável vê as notas. Aberto até <b>{{ rate.end|dmy }}</b>.</span></p>
+            {% elif rate.state == 'antes' %}<p class="rate-note rate-note--muted">{{ icon('star', 'sm') }}<span>Você poderá avaliar os colegas da banda de <b>{{ rate.start|dmy }}</b> a <b>{{ rate.end|dmy }}</b>.</span></p>
+            {% else %}<p class="rate-note rate-note--muted">{{ icon('star', 'sm') }}<span>Avaliação encerrada em {{ rate.end|dmy }}.</span></p>{% endif %}
+          {% endif %}
+          {% for grp, rows in team %}
+          <div class="group-label">{{ grp }}</div>
+          <dl class="team">
+            {% for t in rows %}
+            <div class="team__row{% if t.me %} is-me{% endif %}">
+              <dt>{{ t.role }}</dt>
+              <dd>{% if t.name %}{{ t.name }}{% if t.me %} <span class="badge badge--success">você</span>{% endif %}{% else %}<span class="text-muted">vaga em aberto</span>{% endif %}
+                {%- if t.rateable %}
+                  {% if editing %}
+                  {%- set fid = 'st-%d-%d'|format(s.id, loop.index) %}
+                  <span class="stars-field">
+                    <span class="stars" role="radiogroup" aria-label="Nota para {{ t.name }} como {{ t.role }}" data-stars>
+                      {%- for n in [5, 4, 3, 2, 1] %}
+                      <input type="radio" id="{{ fid }}-{{ n }}" name="{{ t.key }}" value="{{ n }}"{% if t.stars == n %} checked{% endif %}>
+                      <label for="{{ fid }}-{{ n }}" title="{{ n }} estrela{{ 's' if n > 1 }}"><span class="sr-only">{{ n }} estrela{{ 's' if n > 1 }} para {{ t.name }} como {{ t.role }}</span>{{ icon('star') }}</label>
+                      {%- endfor %}
+                    </span>
+                  </span>
+                  {% elif t.stars %}
+                  <span class="stars stars--ro" role="img" aria-label="Você deu {{ t.stars }} estrela{{ 's' if t.stars > 1 }}">{% for n in range(1, 6) %}<span class="{{ 'on' if n <= t.stars else '' }}">{{ icon('star') }}</span>{% endfor %}</span>
+                  {% endif %}
+                {%- endif %}</dd>
+            </div>
+            {% endfor %}
+          </dl>
+          {% endfor %}
+          {% if editing %}
+            <button class="btn btn--primary btn--block mt-4">{{ icon('star', 'sm') }}Salvar avaliações</button>
+          </form>{% endif %}
+          {% if swap_ui %}
+          <form method="post" action="{{ url_for('swap', token=p.token) }}" class="swap" data-busy
+                data-confirm="Confirmar a troca?" data-confirm-tone="primary" data-confirm-icon="refresh"
+                data-confirm-text="A pessoa escolhida entra no lugar e a troca fica registrada para o responsável."
+                data-confirm-ok="Sim, trocar" data-confirm-cancel="Voltar">
+            <input type="hidden" name="service_id" value="{{ s.id }}">
+            <div class="swap__head">{{ icon('refresh', 'sm') }}<div><b>Trocar alguém da banda</b>
+              <p class="text-sm text-muted">Como ministro deste culto, você pode trocar até o dia {{ s.date|dmy }}. Só aparece quem não marcou indisponibilidade e ainda não está neste culto.</p></div></div>
+            <div class="field mt-0">
+              <label class="label" for="sw-role-{{ s.id }}">Quem sai</label>
+              <select class="select" id="sw-role-{{ s.id }}" name="role" required>
+                <option value="">Escolha a função…</option>
+                {% for r in swap_ui.rows %}<option value="{{ r.role }}">{{ r.role }} — {{ r.name or 'vaga em aberto' }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="field mt-0">
+              <label class="label" for="sw-new-{{ s.id }}">Quem entra</label>
+              <select class="select" id="sw-new-{{ s.id }}" name="new_id" required>
+                <option value="">{{ 'Escolha a pessoa…' if swap_ui.cands else 'Ninguém disponível' }}</option>
+                {% for q in swap_ui.cands %}<option value="{{ q.id }}">{{ q.name }}</option>{% endfor %}
+              </select>
+            </div>
+            <button class="btn btn--outline btn--block">{{ icon('refresh', 'sm') }}Trocar</button>
+          </form>
+          {% endif %}
+        </div>
+      </details>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endfor %}
+</div>
+<script src="{{ url_for('static', filename='js/calendar.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/stars.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/photo.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/escala.js') }}" defer></script>
+{% endblock %}

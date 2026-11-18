@@ -1,0 +1,129 @@
+/* =====================================================================
+   Escalas — Design tokens
+   Única fonte de cores, espaçamentos, raios, sombras e tipografia.
+   Componentes NUNCA usam cores literais: sempre var(--…).
+   O tema é aplicado em <html data-theme="light|dark"> (ver base.html).
+   ===================================================================== */
+
+:root {
+  color-scheme: light;
+
+  /* ---- Marca / ações ---- */
+  --color-primary: #16865C;          /* botões e links (texto branco 4.6:1) */
+  --color-primary-hover: #116E4B;
+  --color-on-primary: #FFFFFF;
+  --color-accent: #16A36A;           /* destaques não-textuais: item ativo, barras, foco */
+  --color-primary-soft: #DDF5E9;     /* fundo de indicadores, badges, item ativo */
+  --color-on-soft: #0F6B47;          /* texto sobre --color-primary-soft (5.7:1) */
+
+  --color-secondary: #EEF3F0;        /* botão secundário */
+  --color-secondary-hover: #E2EAE5;
+  --color-on-secondary: #25352D;
+
+  /* ---- Superfícies ---- */
+  --color-bg: #F5F8F6;
+  --color-surface: #FFFFFF;
+  --color-surface-2: #F9FBFA;        /* áreas internas, linhas alternadas */
+  --color-surface-hover: #F2F6F4;
+  --color-border: #E6ECE8;
+  --color-border-strong: #D2DCD6;
+
+  /* ---- Texto ---- */
+  --color-text: #25352D;
+  --color-muted: #5F6E66;            /* 5.4:1 sobre branco */
+  --color-subtle: #8A978F;           /* só para elementos não essenciais */
+
+  /* ---- Semânticas ---- */
+  --color-success: #16865C;  --color-success-soft: #DDF5E9;  --color-on-success-soft: #0F6B47;
+  --color-warning: #9A6212;  --color-warning-soft: #FDF3DF;  --color-on-warning-soft: #7A4C0C;
+  --color-danger:  #B93838;  --color-danger-soft:  #FCEBEA;  --color-on-danger-soft:  #9A2C2C;
+  --color-info:    #2F62B8;  --color-info-soft:    #E8EFFB;  --color-on-info-soft:    #234C93;
+
+  --color-overlay: rgb(14 20 17 / .42);
+  --color-focus: rgb(22 163 106 / .38);
+  --color-knob: #FFFFFF;             /* bolinha do interruptor (igual nos dois temas) */
+  --shadow-knob: 0 1px 2px rgb(0 0 0 / .2);
+
+  /* ---- Gráficos ---- */
+  --chart-track: #EDF2EF;
+  --chart-bar: var(--color-accent);
+  --chart-bar-alt: #8FD3B3;
+
+  /* ---- Elevação ---- */
+  --shadow-sm: 0 1px 2px rgb(16 24 20 / .05);
+  --shadow-md: 0 1px 2px rgb(16 24 20 / .04), 0 4px 14px rgb(16 24 20 / .07);
+  --shadow-lg: 0 16px 40px rgb(16 24 20 / .16);
+
+  /* ---- Forma ---- */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-full: 999px;
+
+  /* ---- Espaçamento (escala de 4px) ---- */
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+  --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-10: 40px;
+
+  /* ---- Tipografia ---- */
+  --font-sans: "Inter", "InterVariable", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+               Roboto, "Helvetica Neue", "Noto Sans", Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", monospace;
+  --text-xs: 12px; --text-sm: 13px; --text-md: 14px; --text-base: 15px;
+  --text-input: 16px;  /* evita zoom automático no iOS */
+  --text-lg: 18px; --text-xl: 22px; --text-2xl: 28px;
+  --weight-regular: 400; --weight-medium: 500; --weight-semibold: 600;
+  --leading: 1.5;
+
+  /* ---- Layout ---- */
+  --sidebar-w: 248px;
+  --sidebar-rail-w: 72px;
+  --header-h: 64px;
+  --content-max: 1180px;
+  --public-max: 560px;
+  --control-h: 44px;
+
+  /* ---- Movimento ---- */
+  --ease: cubic-bezier(.2, 0, .2, 1);
+  --dur: 150ms;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-primary: #2BB673;
+  --color-primary-hover: #3DCB86;
+  --color-on-primary: #05150D;
+  --color-accent: #34C285;
+  --color-primary-soft: #173628;
+  --color-on-soft: #86E3B5;
+
+  --color-secondary: #1F2A24;
+  --color-secondary-hover: #27342D;
+  --color-on-secondary: #E3ECE6;
+
+  --color-bg: #0E1411;
+  --color-surface: #151D19;
+  --color-surface-2: #1A2420;
+  --color-surface-hover: #1D2823;
+  --color-border: #25322B;
+  --color-border-strong: #33433A;
+
+  --color-text: #E3ECE6;
+  --color-muted: #9AAAA1;
+  --color-subtle: #6F7F76;
+
+  --color-success: #34C285;  --color-success-soft: #173628;  --color-on-success-soft: #86E3B5;
+  --color-warning: #E5B567;  --color-warning-soft: #33281A;  --color-on-warning-soft: #F0CB8C;
+  --color-danger:  #F08C84;  --color-danger-soft:  #3A1F1E;  --color-on-danger-soft:  #F6ABA5;
+  --color-info:    #8DB2F2;  --color-info-soft:    #1C2638;  --color-on-info-soft:    #AEC8F6;
+
+  --color-overlay: rgb(0 0 0 / .6);
+  --color-focus: rgb(52 194 133 / .45);
+
+  --chart-track: #1F2A24;
+  --chart-bar-alt: #2F6E50;
+
+  --shadow-sm: 0 0 0 transparent;
+  --shadow-md: 0 1px 2px rgb(0 0 0 / .3);
+  --shadow-lg: 0 16px 40px rgb(0 0 0 / .5);
+}

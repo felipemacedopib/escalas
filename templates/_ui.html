@@ -1,0 +1,125 @@
+{#- =====================================================================
+    Escalas — componentes de interface (macros Jinja)
+    Uso:  {% from "_ui.html" import icon, badge, stat, alert, page_head %}
+    Regra: estas macros só cuidam de apresentação. Nenhuma lógica de negócio aqui.
+    Catálogo visual dos componentes: /static/design-system.html
+    ===================================================================== -#}
+
+{# Ícone do sprite static/icons.svg.  size: '', 'sm' ou 'lg' #}
+{% macro icon(name, size='', cls='', label=None) -%}
+<svg class="icon{% if size %} icon--{{ size }}{% endif %}{% if cls %} {{ cls }}{% endif %}" {% if label %}role="img" aria-label="{{ label }}"{% else %}aria-hidden="true"{% endif %} focusable="false"><use href="{{ url_for('static', filename='icons.svg') }}#i-{{ name }}"></use></svg>
+{%- endmacro %}
+
+{# Alternância de tema: Claro / Escuro / Sistema (comportamento em static/js/ui.js) #}
+{% macro theme_switch() -%}
+<div class="segmented" role="group" aria-label="Tema da interface">
+  <button type="button" data-theme-set="light" aria-pressed="false" data-tooltip="Claro">{{ icon('sun') }}<span class="sr-only">Tema claro</span></button>
+  <button type="button" data-theme-set="dark" aria-pressed="false" data-tooltip="Escuro">{{ icon('moon') }}<span class="sr-only">Tema escuro</span></button>
+  <button type="button" data-theme-set="system" aria-pressed="false" data-tooltip="Sistema">{{ icon('monitor') }}<span class="sr-only">Seguir o sistema</span></button>
+</div>
+{%- endmacro %}
+
+{# Badge. tone: primary|success|warning|danger|info|outline|'' #}
+{% macro badge(text, tone='', dot=False) -%}
+<span class="badge{% if tone %} badge--{{ tone }}{% endif %}{% if dot %} badge--dot{% endif %}">{{ text }}</span>
+{%- endmacro %}
+
+{# Status do mês (valores vindos do banco: coleta | rascunho | publicada) #}
+{% macro month_status(status) -%}
+{%- set map = {'coleta': ('Coletando indisponibilidades', 'info'),
+               'rascunho': ('Rascunho da escala', 'warning'),
+               'publicada': ('Escala publicada', 'success')} -%}
+{%- set t = map.get(status, (status, '')) -%}
+{{ badge(t[0], t[1], dot=True) }}
+{%- endmacro %}
+
+{# Barra de progresso. pct: 0–100 #}
+{% macro progress(pct, label='') -%}
+<div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ pct|round|int }}"{% if label %} aria-label="{{ label }}"{% endif %}>
+  <div class="progress__bar" style="--value: {{ pct|round(1) }}%"></div>
+</div>
+{%- endmacro %}
+
+{# Indicador. tone: accent|danger|warning|'' ; pct (opcional) desenha barra #}
+{% macro stat(label, value, icon_name=None, meta=None, tone='', pct=None, suffix=None) -%}
+<div class="stat{% if tone %} stat--{{ tone }}{% endif %}">
+  <div class="stat__top">
+    <span class="stat__label">{{ label }}</span>
+    {% if icon_name %}<span class="stat__icon">{{ icon(icon_name) }}</span>{% endif %}
+  </div>
+  <div class="stat__value">{{ value }}{% if suffix %} <small>{{ suffix }}</small>{% endif %}</div>
+  {% if meta %}<div class="stat__meta">{{ meta }}</div>{% endif %}
+  {% if pct is not none %}{{ progress(pct, label) }}{% endif %}
+</div>
+{%- endmacro %}
+
+{# Alerta. tone: success|warning|danger|info. Conteúdo via {% call %} #}
+{% macro alert(tone='info', title=None, dismissible=False, live=True) -%}
+{%- set icons = {'success': 'check-circle', 'warning': 'alert', 'danger': 'x-circle', 'info': 'info'} -%}
+<div class="alert alert--{{ tone }}" {% if live %}role="{{ 'alert' if tone == 'danger' else 'status' }}"{% endif %}>
+  {{ icon(icons.get(tone, 'info')) }}
+  <div class="alert__body">
+    {% if title %}<div class="alert__title">{{ title }}</div>{% endif %}
+    {% if caller is defined %}{{ caller() }}{% endif %}
+  </div>
+  {% if dismissible %}<button type="button" class="btn btn--ghost btn--icon btn--sm alert__close" data-dismiss aria-label="Fechar">{{ icon('x', 'sm') }}</button>{% endif %}
+</div>
+{%- endmacro %}
+
+{# Avatar com iniciais #}
+{% macro avatar(name, size='', src=None) -%}
+{%- set parts = (name or '?').split() -%}
+{%- if src -%}
+<img class="avatar avatar--img{% if size %} avatar--{{ size }}{% endif %}" src="{{ src }}" alt="" loading="lazy">
+{%- else -%}
+<span class="avatar{% if size %} avatar--{{ size }}{% endif %}" aria-hidden="true">{{ (parts[0][0] ~ (parts[-1][0] if parts|length > 1 else ''))|upper }}</span>
+{%- endif -%}
+{%- endmacro %}
+
+{# Estado vazio #}
+{% macro empty(icon_name, title, text=None) -%}
+<div class="empty">
+  <div class="empty__icon">{{ icon(icon_name, 'lg') }}</div>
+  <div class="empty__title">{{ title }}</div>
+  {% if text %}<p class="text-md">{{ text }}</p>{% endif %}
+  {% if caller is defined %}<div class="mt-4">{{ caller() }}</div>{% endif %}
+</div>
+{%- endmacro %}
+
+{# Cabeçalho de página. Ações via {% call %} #}
+{% macro page_head(title, sub=None, eyebrow=None) -%}
+<div class="page-head">
+  <div class="page-head__text">
+    {% if eyebrow %}<div class="page-head__eyebrow">{{ eyebrow }}</div>{% endif %}
+    <h1>{{ title }}</h1>
+    {% if sub %}<p class="page-head__sub">{{ sub }}</p>{% endif %}
+  </div>
+  {% if caller is defined %}<div class="page-head__actions">{{ caller() }}</div>{% endif %}
+</div>
+{%- endmacro %}
+
+{# Abas de navegação entre as páginas de um mês. active: geral | cultos | escala | avisos #}
+{% macro month_tabs(m, active) -%}
+<nav class="tabs tabs--nav mb-6" aria-label="Páginas do mês">
+  {%- for key, endpoint, label, ic in [('geral', 'month_page', 'Visão geral', 'target'), ('cultos', 'services_page', 'Cultos', 'calendar'),
+                                       ('escala', 'schedule_page', 'Escala', 'users'), ('avisos', 'notices', 'Avisos', 'message'),
+                                       ('avaliacoes', 'ratings_page', 'Avaliações', 'star')] %}
+  <a class="tab" href="{{ url_for(endpoint, mid=m.id) }}"{% if key == active %} aria-current="page"{% endif %}>{{ icon(ic, 'sm') }}{{ label }}</a>
+  {%- endfor %}
+</nav>
+{%- endmacro %}
+
+{# Bloco de data (dia + dia da semana abreviado) #}
+{% macro datebox(d, wd_short) -%}
+<div class="datebox" aria-hidden="true"><div class="datebox__day">{{ '%02d'|format(d.day) }}</div><div class="datebox__wd">{{ wd_short }}</div></div>
+{%- endmacro %}
+
+{# Chip selecionável (checkbox). Mantém exatamente name/value/checked recebidos #}
+{% macro chip(name, value=None, label=None, checked=False, tone='') -%}
+<label class="chip{% if tone %} chip--{{ tone }}{% endif %}"><input type="checkbox" name="{{ name }}"{% if value is not none %} value="{{ value }}"{% endif %}{% if checked %} checked{% endif %}><span>{{ label if label is not none else value }}</span></label>
+{%- endmacro %}
+
+{# Interruptor (checkbox com role=switch) #}
+{% macro switch(name, label, checked=False, hint=None) -%}
+<label class="switch"><input type="checkbox" role="switch" name="{{ name }}"{% if checked %} checked{% endif %}><span class="switch__track" aria-hidden="true"></span><span class="switch__text"><span>{{ label }}</span>{% if hint %}<small>{{ hint }}</small>{% endif %}</span></label>
+{%- endmacro %}

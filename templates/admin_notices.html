@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% from "_ui.html" import icon, badge, avatar, alert, empty, page_head, month_tabs %}
+{% block title %}Avisos {{ mt }} · {{ igreja }}{% endblock %}
+{% block crumbs %}<li><a href="{{ url_for('admin_index') }}">Meses</a></li><li><a href="{{ url_for('month_page', mid=m.id) }}">{{ mt }}</a></li><li><span aria-current="page">Avisos</span></li>{% endblock %}
+{% block body %}
+{% call page_head('Avisos — ' ~ mt) %}
+  <a class="btn btn--outline" href="{{ url_for('schedule_page', mid=m.id) }}">{{ icon('arrow-left', 'sm') }}Escala</a>
+{% endcall %}
+{{ month_tabs(m, 'avisos') }}
+
+<div class="mb-6">{% call alert('info', live=False) %}Cada botão abre o WhatsApp já com a mensagem pronta; é só apertar enviar. (No futuro isso pode ser disparado automaticamente.){% endcall %}</div>
+
+{#- funções em que cada pessoa está escalada no mês (vêm do texto do item: "• Dom 03/01 (Manhã): Guitarra, Tenor") -#}
+{%- set roles_of = {} -%}
+{%- set count = {} -%}
+{%- for p, items, msg, wa in out -%}
+  {%- set rs = [] -%}
+  {%- for it in items %}{% for r in it.split('): ', 1)[-1].split(', ') %}{% if r and r not in rs %}{% set _ = rs.append(r) %}{% endif %}{% endfor %}{% endfor -%}
+  {%- set _ = roles_of.update({p.id: rs}) -%}
+  {%- for r in rs %}{% set _ = count.update({r: count.get(r, 0) + 1}) %}{% endfor -%}
+{%- endfor -%}
+
+{% if out %}
+<div class="card mb-6" data-notice-filter>
+  <div class="card__body filter-bar">
+    <div class="input-icon">{{ icon('search', 'sm') }}<input class="input input--sm" type="search" placeholder="Filtrar por nome" aria-label="Filtrar por nome" data-nf-name></div>
+    <label class="sr-only" for="nf-role">Filtrar por função</label>
+    <select class="select select--sm select--auto" id="nf-role" data-nf-role>
+      <option value="">Todas as funções</option>
+      {% for r in ROLES_ALL if count.get(r) %}<option value="{{ r }}">{{ r }} ({{ count[r] }})</option>{% endfor %}
+    </select>
+    <span class="text-sm text-muted num" data-nf-count aria-live="polite">{{ out|length }} de {{ out|length }} pessoas</span>
+    <button type="button" class="btn btn--ghost btn--sm" data-nf-clear hidden>{{ icon('x', 'sm') }}Limpar filtros</button>
+  </div>
+</div>
+{% endif %}
+
+<div class="grid-cards" data-nf-list>
+{% for p, items, msg, wa in out %}
+  <section class="card" aria-label="Aviso para {{ p.name }}" data-nf-item data-name="{{ p.name }}" data-roles="{{ roles_of[p.id]|join('|') }}">
+    <div class="card__header">
+      <span class="person">{{ avatar(p.name) }}<b class="person__name">{{ p.name }}</b></span>
+      <span class="spacer"></span>
+      {{ badge(items|length ~ (' culto' if items|length == 1 else ' cultos'), 'primary') }}
+      <div class="badges w-full">{% for r in roles_of[p.id] %}{{ badge(r, 'outline') }}{% endfor %}</div>
+    </div>
+    <div class="card__body"><pre class="message">{{ msg }}</pre></div>
+    <div class="card__footer">
+      {% if wa %}<a class="btn btn--primary btn--sm" href="{{ wa }}" target="_blank" rel="noopener">{{ icon('send', 'sm') }}Enviar no WhatsApp</a>{% else %}<span class="text-sm text-muted">sem celular cadastrado</span>{% endif %}
+      <button type="button" class="btn btn--ghost btn--sm" data-copy="{{ msg }}" data-copy-msg="Mensagem copiada!">{{ icon('copy', 'sm') }}Copiar</button>
+    </div>
+  </section>
+{% else %}
+  <div class="card">{{ empty('message', 'Ninguém escalado ainda', 'Gere a escala do mês para montar os avisos.') }}</div>
+{% endfor %}
+</div>
+{% if out %}<div class="card" data-nf-empty hidden>{{ empty('search', 'Ninguém encontrado', 'Nenhum aviso combina com o filtro. Tente outro nome ou função.') }}</div>{% endif %}
+<script src="{{ url_for('static', filename='js/filters.js') }}" defer></script>
+{% endblock %}

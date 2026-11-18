@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% from "_ui.html" import icon, stat, badge, avatar, page_head, empty %}
+{% block title %}Duplas · {{ igreja }}{% endblock %}
+{% block crumbs %}<li><span aria-current="page">Duplas</span></li>{% endblock %}
+{% block body %}
+{% call page_head('Duplas', 'Pessoas que devem tocar juntas. Cada dupla liga exatamente 2 pessoas, e cada pessoa pode ter até %d duplas.'|format(max_pairs)) %}{% endcall %}
+
+{%- set top = ranking|first -%}
+<div class="grid-stats mb-6">
+  {{ stat('Duplas cadastradas', pairs|length, 'heart-handshake', tone='accent') }}
+  {{ stat('Pessoas com dupla', ranking|length, 'users', meta='de %d ativas'|format(n_active)) }}
+  {{ stat('Mais conexões', (top[1]|length) if top else 0, 'chart', meta=(top[0].name if top else 'ninguém ainda')) }}
+  {{ stat('Ativos sem dupla', n_alone, 'user') }}
+</div>
+
+<div class="split mb-6">
+  {# ---------- ranking ---------- #}
+  <section class="card" aria-labelledby="ranking">
+    <div class="card__header">
+      <h2 class="card__title" id="ranking">{{ icon('chart') }}Conexões por pessoa</h2>
+      <p class="card__desc">Quantas duplas cada pessoa tem, da que tem mais para a que tem menos.</p>
+    </div>
+    <div class="card__body">
+      {% if ranking %}
+      {%- set mx = top[1]|length -%}
+      <ul class="barchart">
+        {% for p, names in ranking %}
+        <li class="barchart__row" title="{{ p.name }}: {{ names|join(', ') }}">
+          <span class="barchart__label">{{ p.name }}</span>
+          <span class="barchart__track" aria-hidden="true"><span class="barchart__bar" style="--value: {{ (100 * names|length / mx)|round(1) }}%"></span></span>
+          <span class="barchart__value">{{ names|length }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+        {{ empty('heart-handshake', 'Nenhuma dupla ainda', 'Crie a primeira dupla no formulário ao lado.') }}
+      {% endif %}
+    </div>
+  </section>
+
+  {# ---------- nova dupla ---------- #}
+  <form method="post" class="card" data-busy data-pair-form>
+    <input type="hidden" name="acao" value="add">
+    <div class="card__header">
+      <h2 class="card__title">{{ icon('plus') }}Nova dupla</h2>
+      <p class="card__desc">Escolha as duas pessoas. Quem já tem {{ max_pairs }} duplas aparece bloqueado, e uma dupla que já existe não é criada de novo.</p>
+    </div>
+    <div class="card__body stack">
+      <div class="field mt-0">
+        <label class="label" for="pessoa_a">Pessoa 1</label>
+        <select class="select" id="pessoa_a" name="pessoa_a" required>
+          <option value="">Escolha…</option>
+          {% for p in everyone %}{% set full = counts.get(p.id, 0) >= max_pairs %}<option value="{{ p.id }}"{% if full %} disabled data-full{% endif %}>{{ p.name }}{% if not p.active %} (inativo){% endif %}{% if full %} — já tem {{ max_pairs }} duplas{% endif %}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field mt-0">
+        <label class="label" for="pessoa_b">Pessoa 2</label>
+        <select class="select" id="pessoa_b" name="pessoa_b" required>
+          <option value="">Escolha…</option>
+          {% for p in everyone %}{% set full = counts.get(p.id, 0) >= max_pairs %}<option value="{{ p.id }}"{% if full %} disabled data-full{% endif %}>{{ p.name }}{% if not p.active %} (inativo){% endif %}{% if full %} — já tem {{ max_pairs }} duplas{% endif %}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field mt-0">
+        <label class="label" for="peso">Força da preferência</label>
+        <select class="select" id="peso" name="peso">
+          {% for w, label in weights.items() %}<option value="{{ w }}" {% if w == 6 %}selected{% endif %}>preferência {{ label }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="card__footer"><button class="btn btn--primary btn--block">{{ icon('heart-handshake', 'sm') }}Criar dupla</button></div>
+  </form>
+</div>
+
+{# ---------- todas as duplas ---------- #}
+<section class="card" aria-labelledby="todas">
+  <div class="card__header">
+    <h2 class="card__title" id="todas">{{ icon('heart-handshake') }}Todas as duplas <span class="text-muted num">({{ pairs|length }})</span></h2>
+    <div class="input-icon">{{ icon('search', 'sm') }}<input class="input input--sm" type="search" placeholder="Buscar pessoa" aria-label="Buscar pessoa" data-filter="#tabela-duplas"></div>
+    <p class="card__desc">“Escalados juntos” conta os cultos, em todos os meses, em que as duas pessoas estavam na escala.</p>
+  </div>
+  <div class="card__body card__body--flush">
+    <div class="table-wrap">
+      <table class="table table--stack" id="tabela-duplas">
+        <thead><tr><th>Pessoa 1</th><th>Pessoa 2</th><th>Força</th><th>Escalados juntos</th><th class="actions">Ação</th></tr></thead>
+        <tbody>
+        {% for d in pairs %}
+          <tr data-filter-text="{{ d.a.name }} {{ d.b.name }}">
+            <td data-label="Pessoa 1"><a class="person" href="{{ url_for('person_edit', pid=d.a.id) }}">{{ avatar(d.a.name) }}<span class="person__name">{{ d.a.name }}</span></a></td>
+            <td data-label="Pessoa 2"><a class="person" href="{{ url_for('person_edit', pid=d.b.id) }}">{{ avatar(d.b.name) }}<span class="person__name">{{ d.b.name }}</span></a></td>
+            <td data-label="Força">{{ badge(d.forca, 'primary' if d.weight >= 6 else ('outline' if d.weight <= 2 else 'info')) }}</td>
+            <td data-label="Juntos">{{ d.juntos }} culto{{ 's' if d.juntos != 1 }}</td>
+            <td class="actions">
+              <form method="post" data-confirm="Remover a dupla {{ d.a.name }} + {{ d.b.name }}?" data-confirm-text="As duas pessoas continuam cadastradas; só deixam de ser escaladas preferencialmente juntas." data-confirm-ok="Remover dupla">
+                <button class="btn btn--ghost btn--sm" name="acao" value="del:{{ d.id }}">{{ icon('trash', 'sm') }}remover</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" class="text-muted text-center">Nenhuma dupla cadastrada.</td></tr>
+        {% endfor %}
+          <tr data-filter-empty hidden><td colspan="5" class="text-muted text-center">Ninguém encontrado.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+<script src="{{ url_for('static', filename='js/pairs.js') }}" defer></script>
+{% endblock %}

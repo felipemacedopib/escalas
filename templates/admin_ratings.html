@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% from "_ui.html" import icon, stat, avatar, page_head, month_tabs, empty %}
+{% block title %}Avaliações {{ mt }} · {{ igreja }}{% endblock %}
+{% block crumbs %}<li><a href="{{ url_for('admin_index') }}">Meses</a></li><li><a href="{{ url_for('month_page', mid=m.id) }}">{{ mt }}</a></li><li><span aria-current="page">Avaliações</span></li>{% endblock %}
+{% macro stars_ro(v, size='') -%}
+<span class="stars stars--ro{% if size %} stars--{{ size }}{% endif %}" role="img" aria-label="{{ '%.1f'|format(v)|replace('.', ',') }} de 5 estrelas">
+  {%- for n in range(1, 6) %}<span class="{{ 'on' if v >= n - 0.25 else ('half' if v >= n - 0.75 else '') }}">{{ icon('star') }}</span>{% endfor -%}
+</span>
+{%- endmacro %}
+{% block body %}
+{{ page_head('Avaliações — ' ~ mt, 'Notas que os colegas da banda deram uns aos outros em cada culto, uma para cada função. Só você vê esta página.') }}
+{{ month_tabs(m, 'avaliacoes') }}
+
+<div class="grid-stats mb-6">
+  {{ stat('Avaliações recebidas', total, 'star', tone='accent') }}
+  {{ stat('Pessoas avaliadas', people|length, 'users') }}
+  {{ stat('Média geral', ('%.1f'|format(avg))|replace('.', ',') if total else '—', 'chart', meta='de 5 estrelas') }}
+  {{ stat('Quem avaliou', raters, 'check-circle', meta='pessoas da banda') }}
+</div>
+
+<section class="card" aria-labelledby="t-aval">
+  <div class="card__header">
+    <h2 class="card__title" id="t-aval">{{ icon('star') }}Por pessoa</h2>
+    <div class="input-icon">{{ icon('search', 'sm') }}<input class="input input--sm" type="search" placeholder="Buscar pessoa" aria-label="Buscar pessoa" data-filter="#lista-aval"></div>
+    <p class="card__desc">Da maior para a menor média. Abra uma pessoa para ver cada nota, o culto e quem avaliou. A avaliação de cada culto fica aberta do dia do culto até {{ rate_days }} dias depois.</p>
+  </div>
+  <div class="card__body" id="lista-aval">
+    {% if people %}
+    <div class="stack">
+      {% for name, media, notas, funcoes in people %}
+      <details class="disclosure" data-filter-text="{{ name }}">
+        <summary>
+          <span class="person">{{ avatar(name) }}<b class="person__name">{{ name }}</b></span>
+          <span class="rating-sum">{{ stars_ro(media) }}<b class="num">{{ ('%.1f'|format(media))|replace('.', ',') }}</b>
+            <span class="text-sm text-muted">({{ notas|length }} avaliaç{{ 'ão' if notas|length == 1 else 'ões' }})</span></span>
+          {{ icon('chevron-down', cls='disclosure__chev') }}
+        </summary>
+        <div class="disclosure__body">
+          <div class="badges mb-4">{% for r, mr, nr in funcoes %}<span class="badge badge--outline">{{ r }}: <b class="num">{{ ('%.1f'|format(mr))|replace('.', ',') }}</b> ★ ({{ nr }})</span>{% endfor %}</div>
+          <table class="table table--stack">
+            <thead><tr><th>Culto</th><th>Função</th><th>Quem avaliou</th><th>Nota</th></tr></thead>
+            <tbody>
+              {% for n in notas %}
+              <tr>
+                <td data-label="Culto">{{ WDS[n.s.date.weekday()] }} {{ n.s.date|dmy }} · {{ n.s.turn }}</td>
+                <td data-label="Função">{{ n.role }}</td>
+                <td data-label="Por">{{ n.by }}</td>
+                <td data-label="Nota">{{ stars_ro(n.stars) }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </details>
+      {% endfor %}
+      <p class="text-muted text-center" data-filter-empty hidden>Ninguém encontrado.</p>
+    </div>
+    {% else %}
+      {{ empty('star', 'Nenhuma avaliação ainda', 'Depois de cada culto, quem tocou e cantou pode avaliar os colegas da banda pelo link pessoal, por ' ~ rate_days ~ ' dias.') }}
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

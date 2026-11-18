@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% from "_ui.html" import icon, stat, progress, month_status, empty, page_head %}
+{% block title %}Meses · {{ igreja }}{% endblock %}
+{% block crumbs %}<li><span aria-current="page">Meses</span></li>{% endblock %}
+{% block body %}
+{{ page_head('Meses', 'Crie o mês, colete as indisponibilidades, gere a escala e publique.') }}
+
+{% if months %}
+{%- set latest = months[0] -%}
+{%- set r, n = stats[latest.id] -%}
+<div class="grid-stats mb-6">
+  {{ stat('Respostas · ' ~ month_title(latest.ym), r, 'users', suffix='/ ' ~ n, tone='accent',
+          pct=(100 * r / n if n else 0), meta=('%d%% da equipe respondeu'|format(100 * r / n if n else 0))) }}
+  {{ stat('Pessoas ativas', n, 'heart-handshake', meta='na equipe de louvor') }}
+  {{ stat('Escalas publicadas', months|selectattr('status', 'equalto', 'publicada')|list|length, 'check-circle',
+          meta='de ' ~ months|length ~ (' mês criado' if months|length == 1 else ' meses criados')) }}
+</div>
+{% endif %}
+
+<div class="split">
+  <section aria-labelledby="lista-meses">
+    <h2 id="lista-meses" class="sr-only">Lista de meses</h2>
+    <div class="stack">
+      {% for m in months %}
+      {%- set r, n = stats[m.id] -%}
+      <a class="card card--link" href="{{ url_for('month_page', mid=m.id) }}">
+        <div class="card__body">
+          <div class="cluster-lg">
+            <span class="stat__icon">{{ icon('calendar') }}</span>
+            <div class="list__main">
+              <h3>{{ month_title(m.ym) }}</h3>
+              <div class="text-sm text-muted num">{{ r }}/{{ n }} responderam</div>
+            </div>
+            {{ month_status(m.status) }}
+            {{ icon('chevron-right', cls='text-muted') }}
+          </div>
+          <div class="mt-4">{{ progress(100 * r / n if n else 0, 'Respostas de ' ~ month_title(m.ym)) }}</div>
+        </div>
+      </a>
+      {% else %}
+      <div class="card">{{ empty('calendar', 'Nenhum mês criado ainda', 'Crie o primeiro mês no formulário ao lado.') }}</div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <form method="post" action="{{ url_for('month_new') }}" class="card" data-busy>
+    <div class="card__header">
+      <h2 class="card__title">{{ icon('calendar-plus') }}Criar novo mês</h2>
+    </div>
+    <div class="card__body">
+      <div class="field">
+        <label class="label" for="ym">Mês</label>
+        <input class="input" type="month" id="ym" name="ym" value="{{ suggest }}" required>
+      </div>
+      <fieldset class="fieldset field">
+        <legend class="label">Dias de culto neste mês</legend>
+        <div class="chips">{% for i in [6,1,3,4,5] %}<label class="chip"><input type="checkbox" name="wd" value="{{ i }}" {% if i != 3 %}checked{% endif %}><span>{{ WD[i] }}</span></label>{% endfor %}</div>
+        <p class="help mt-2">Domingo gera manhã e noite. Sexta entra só com Teclado (Banda Influe). Depois você edita/remove cultos à vontade.</p>
+      </fieldset>
+    </div>
+    <div class="card__footer">
+      <button class="btn btn--primary btn--block">{{ icon('plus') }}Criar</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

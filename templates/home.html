@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% from "_ui.html" import icon %}
+{% block main_class %} public-main--center{% endblock %}
+{% block body %}
+<div class="card">
+  <div class="card__body card__body--roomy stack">
+    <span class="stat__icon">{{ icon('heart-handshake') }}</span>
+    <div>
+      <h1 class="title-md">Olá!</h1>
+      <p class="mt-2">Para informar os dias em que você <b>não pode</b> servir no louvor, abra o <b>link pessoal</b> que o ministério te enviou (pelo WhatsApp).</p>
+    </div>
+    <div class="alert alert--info">{{ icon('info') }}<div class="alert__body">Não recebeu ou perdeu o link? Peça novamente ao responsável pela escala.</div></div>
+  </div>
+  <div class="card__footer">
+    <a class="btn btn--outline" href="{{ url_for('login') }}">{{ icon('login') }}Entrar como responsável</a>
+  </div>
+</div>
+{% endblock %}

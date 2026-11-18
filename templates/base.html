@@ -1,0 +1,96 @@
+{%- from "_ui.html" import icon, theme_switch, alert -%}
+{%- set nav_map = {'admin_index': 'meses', 'month_page': 'meses', 'services_page': 'meses', 'schedule_page': 'meses', 'notices': 'meses', 'ratings_page': 'meses',
+                   'people_page': 'pessoas', 'person_edit': 'pessoas', 'pairs_page': 'duplas', 'config_page': 'regras'} -%}
+{%- set active_nav = nav_map.get(request.endpoint) -%}
+{%- set app_layout = session.admin and active_nav -%}
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>{% block title %}{{ igreja }}{% endblock %}</title>
+<script>
+/* Aplica o tema salvo ANTES da primeira pintura (evita flash de tema errado). Lógica completa em static/js/ui.js */
+(function(){var p;try{p=localStorage.getItem('escalas-theme')}catch(e){}p=p||'light';
+var d=p==='dark'||(p==='system'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);
+document.documentElement.setAttribute('data-theme',d?'dark':'light');document.documentElement.setAttribute('data-theme-pref',p);})();
+</script>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2316865C'/%3E%3Cpath d='M13 22V10l9-2v11' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='10.5' cy='22' r='2.5' fill='none' stroke='white' stroke-width='2.2'/%3E%3Ccircle cx='19.5' cy='19' r='2.5' fill='none' stroke='white' stroke-width='2.2'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
+<script src="{{ url_for('static', filename='js/ui.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/confirm.js') }}" defer></script>
+</head>
+
+{%- macro flashes() -%}
+{%- set msgs = get_flashed_messages() -%}
+{%- if msgs %}<div class="flashes">
+{%- for m in msgs -%}
+  {#- app.py não usa categorias de flash: o tom é inferido só para apresentação -#}
+  {%- if m.startswith(('Senha incorreta', 'Esse mês já existe', 'Já existe', 'Não consegui', 'O prazo para responder terminou', 'Celular inválido')) %}{% set tone = 'danger' %}
+  {%- elif 'Atenção' in m %}{% set tone = 'warning' %}
+  {%- else %}{% set tone = 'success' %}{% endif -%}
+  {% call alert(tone, dismissible=True) %}{{ m }}{% endcall %}
+{%- endfor %}</div>{% endif -%}
+{%- endmacro -%}
+
+{% if app_layout %}
+<body class="layout-app">
+<a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+
+<aside class="sidebar" id="sidebar" aria-label="Navegação principal">
+  <div class="sidebar__brand">
+    <a class="brand" href="{{ url_for('admin_index') }}">
+      <span class="brand__mark">{{ icon('music') }}</span>
+      <span class="brand__name">{{ igreja }}<span class="brand__sub">Painel do responsável</span></span>
+    </a>
+  </div>
+  <div class="sidebar__section">Menu</div>
+  <nav class="nav">
+    {%- for key, endpoint, label, ic in [('meses', 'admin_index', 'Meses', 'calendar'),
+                                         ('pessoas', 'people_page', 'Pessoas', 'users'),
+                                         ('duplas', 'pairs_page', 'Duplas', 'heart-handshake'),
+                                         ('regras', 'config_page', 'Regras', 'sliders')] %}
+    <a class="nav__item{% if active_nav == key %} is-active{% endif %}" href="{{ url_for(endpoint) }}"
+       {% if active_nav == key %}aria-current="page"{% endif %} data-tooltip="{{ label }}" data-tooltip-pos="right">
+      {{ icon(ic) }}<span class="nav__label">{{ label }}</span>
+    </a>
+    {%- endfor %}
+  </nav>
+  <div class="sidebar__footer">
+    <a class="nav__item" href="{{ url_for('logout') }}" data-tooltip="Sair" data-tooltip-pos="right">{{ icon('logout') }}<span class="nav__label">Sair</span></a>
+  </div>
+</aside>
+<div class="nav-backdrop" data-nav-close hidden></div>
+
+<div class="app">
+  <header class="topbar">
+    <button type="button" class="btn btn--ghost btn--icon topbar__menu" data-nav-open aria-controls="sidebar" aria-expanded="false" aria-label="Abrir menu">{{ icon('menu') }}</button>
+    <nav class="breadcrumbs" aria-label="Você está em">
+      <ol>{% block crumbs %}{% endblock %}</ol>
+    </nav>
+    <div class="topbar__end">{{ theme_switch() }}</div>
+  </header>
+  <main id="conteudo" class="content" tabindex="-1">
+    {{ flashes() }}
+    {% block body %}{% endblock %}
+  </main>
+</div>
+</body>
+
+{% else %}
+<body class="layout-public">
+<a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+<header class="public-bar">
+  <a class="brand" href="{{ url_for('home') }}"><span class="brand__mark">{{ icon('music') }}</span><span class="brand__name">{{ igreja }}</span></a>
+  {{ theme_switch() }}
+</header>
+<main id="conteudo" class="public-main{% block main_class %}{% endblock %}" tabindex="-1">
+  {{ flashes() }}
+  {{ self.body() }}
+</main>
+</body>
+{% endif %}
+</html>

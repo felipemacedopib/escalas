@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% from "_ui.html" import icon, badge, avatar, page_head %}
+{% block title %}Pessoas · {{ igreja }}{% endblock %}
+{% block crumbs %}<li><span aria-current="page">Pessoas</span></li>{% endblock %}
+{% block body %}
+{%- set n_active = people|selectattr('active')|list|length -%}
+{%- set n_sent = people|selectattr('active')|selectattr('id', 'in', resp)|list|length -%}
+{%- set sub = '%d pessoas cadastradas · %d ativas'|format(people|length, n_active) -%}
+{%- if ref %}{% set sub = sub ~ ' · %d de %d já enviaram a disponibilidade de %s'|format(n_sent, n_active, ref_title) %}{% endif -%}
+{% call page_head('Pessoas', sub) %}
+<form method="post" action="{{ url_for('person_new') }}" class="cluster">
+  <label class="sr-only" for="nova-pessoa">Nome da nova pessoa</label>
+  <input class="input input--auto" type="text" id="nova-pessoa" name="name" placeholder="Nome da nova pessoa">
+  <button class="btn btn--primary">{{ icon('user-plus', 'sm') }}Adicionar</button>
+</form>
+{% endcall %}
+
+<section class="card" aria-label="Equipe">
+  {#- contagens para os filtros -#}
+  {%- set fc = namespace(enviou=0, pendente=0, inativo=0) -%}
+  {%- set rc = {} -%}
+  {%- for p in people -%}
+    {%- if not p.active %}{% set fc.inativo = fc.inativo + 1 %}{% elif p.id in resp %}{% set fc.enviou = fc.enviou + 1 %}{% else %}{% set fc.pendente = fc.pendente + 1 %}{% endif -%}
+    {%- for r in p.roles %}{% set _ = rc.update({r: rc.get(r, 0) + 1}) %}{% endfor -%}
+  {%- endfor -%}
+  <div class="card__header">
+    <div class="filter-bar" data-notice-filter data-nf-noun="pessoa|pessoas">
+      <div class="input-icon">{{ icon('search', 'sm') }}<input class="input input--sm" type="search" placeholder="Buscar por nome" aria-label="Buscar por nome" data-nf-name></div>
+      {% if ref %}
+      <label class="sr-only" for="nf-status">Filtrar por situação da disponibilidade</label>
+      <select class="select select--sm select--auto" id="nf-status" data-nf-status>
+        <option value="">Todas as situações</option>
+        <option value="pendente">Pendente ({{ fc.pendente }})</option>
+        <option value="enviou">Já enviou ({{ fc.enviou }})</option>
+        {% if fc.inativo %}<option value="inativo">Inativos ({{ fc.inativo }})</option>{% endif %}
+      </select>
+      {% endif %}
+      <label class="sr-only" for="nf-role">Filtrar por função</label>
+      <select class="select select--sm select--auto" id="nf-role" data-nf-role>
+        <option value="">Todas as funções</option>
+        {% for r in BAND if rc.get(r) %}<option value="{{ r }}">{{ r }} ({{ rc[r] }})</option>{% endfor %}
+      </select>
+      <span class="text-sm text-muted num" data-nf-count aria-live="polite">{{ people|length }} de {{ people|length }} pessoas</span>
+      <button type="button" class="btn btn--ghost btn--sm" data-nf-clear hidden>{{ icon('x', 'sm') }}Limpar filtros</button>
+    </div>
+  </div>
+  <div class="card__body card__body--flush">
+    <div class="table-wrap">
+      <table class="table table--stack" id="tabela-pessoas">
+        <thead><tr><th>Pessoa</th>{% if ref %}<th>Disponibilidade <span class="th-sub">{{ ref_title }}</span></th>{% endif %}<th>Funções</th><th class="actions">Ações</th></tr></thead>
+        <tbody>
+        {% for p in people %}
+          {%- set at = resp.get(p.id) -%}
+          {%- set situ = 'inativo' if not p.active else ('enviou' if at else 'pendente') -%}
+          <tr {% if not p.active %}class="is-dim"{% endif %} data-nf-item data-name="{{ p.name }}" data-roles="{{ p.roles|join('|') }}" data-status="{{ situ }}">
+            <td data-label="Pessoa">
+              <a class="person" href="{{ url_for('person_edit', pid=p.id) }}">{{ avatar(p.name, '', foto_url(p)) }}<span class="person__name">{{ p.name }}</span></a>
+              {% if not p.active %} {{ badge('Inativo', 'outline') }}{% endif %}
+            </td>
+            {% if ref %}<td data-label="Disponib.">
+              {%- if not p.active %}<span class="text-muted text-sm">—</span>
+              {%- elif at %}<span class="cluster">{{ badge('Enviou', 'success', dot=True) }}<span class="text-sm text-muted num" title="Enviado em {{ at[8:10] }}/{{ at[5:7] }}/{{ at[0:4] }} às {{ at[11:16] }}">{{ at[8:10] }}/{{ at[5:7] }} {{ at[11:16] }}</span></span>
+              {%- else %}{{ badge('Pendente', 'warning', dot=True) }}{% endif -%}
+            </td>{% endif %}
+            <td data-label="Funções"><div class="badges">{% for r in p.roles|sort %}{{ badge(r, 'primary') }}{% else %}<span class="text-muted text-sm">—</span>{% endfor %}</div></td>
+            <td class="actions">{% set link = base ~ '/p/' ~ p.token %}{% set w = wa(p.phone, 'Oi ' ~ p.name ~ '! Este é o seu link pessoal para informar suas indisponibilidades do louvor. É só tocar para abrir:\n\n' ~ link) %}
+              <div class="cluster row-actions">
+              {% if w %}<a class="btn btn--outline btn--sm" href="{{ w }}" target="_blank" rel="noopener">{{ icon('message', 'sm') }}WhatsApp</a>{% else %}<a class="btn btn--ghost btn--sm" href="{{ link }}" target="_blank" rel="noopener">{{ icon('external', 'sm') }}abrir</a>{% endif %}
+              {%- set im = impact[p.id] -%}
+              {%- set items = [] -%}
+              {%- if im.duplas %}{% set _ = items.append('%d dupla%s'|format(im.duplas, '' if im.duplas == 1 else 's')) %}{% endif -%}
+              {%- if im.escalas %}{% set _ = items.append('%d lugar%s nas escalas (%s)'|format(im.escalas, '' if im.escalas == 1 else 'es', 'ficará vago' if im.escalas == 1 else 'ficarão vagos')) %}{% endif -%}
+              {%- if im.regras %}{% set _ = items.append('%d regra%s personalizada%s'|format(im.regras, '' if im.regras == 1 else 's', '' if im.regras == 1 else 's')) %}{% endif -%}
+              {%- set _ = items.append('indisponibilidades e respostas') -%}
+              <form method="post" action="{{ url_for('person_delete', pid=p.id) }}"
+                    data-confirm="Excluir {{ p.name }}?"
+                    data-confirm-text="A pessoa sai da lista e também serão apagados:"
+                    data-confirm-items='{{ items|tojson }}'
+                    data-confirm-hint="Não dá para desfazer. Se a pessoa só saiu da equipe, desmarque “Ativo(a)” e o histórico fica guardado."
+                    data-confirm-hint-href="{{ url_for('person_edit', pid=p.id) }}" data-confirm-hint-link="Abrir a página dela"
+                    data-confirm-ok="Excluir pessoa">
+                <button class="btn btn--ghost btn--sm btn--icon btn--icon-danger" aria-label="Excluir {{ p.name }}" data-tooltip="Excluir">{{ icon('trash', 'sm') }}</button>
+              </form>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+          <tr data-nf-empty hidden><td colspan="{{ 4 if ref else 3 }}" class="text-muted text-center">Ninguém encontrado.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+<script src="{{ url_for('static', filename='js/filters.js') }}" defer></script>
+{% endblock %}

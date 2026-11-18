@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+{% from "_ui.html" import icon, switch, badge, empty, page_head %}
+{% block title %}Regras · {{ igreja }}{% endblock %}
+{% block crumbs %}<li><span aria-current="page">Regras</span></li>{% endblock %}
+{% block body %}
+{{ page_head('Regras e configurações', 'Ajustes globais usados ao gerar todas as escalas.') }}
+
+<div class="split">
+  <form method="post" class="card" data-busy>
+    <div class="card__body">
+      <div class="setting">
+        <div><label class="setting__title" for="igreja">Nome</label><p class="setting__desc">Aparece no topo e no Excel.</p></div>
+        <div class="setting__control"><input class="input" type="text" id="igreja" name="igreja" value="{{ s.igreja }}"></div>
+      </div>
+      <div class="setting">
+        <div><label class="setting__title" for="limite_confortavel">Limite confortável de cultos por mês</label>
+          <p class="setting__desc">Acima disso o sistema evita escalar a pessoa (e pesa cada vez mais).</p></div>
+        <div class="setting__control"><input class="input" type="number" id="limite_confortavel" name="limite_confortavel" min="1" max="15" value="{{ s.limite_confortavel }}"></div>
+      </div>
+      <div class="setting">
+        <div><label class="setting__title" for="max_dias_semana">Máximo de dias diferentes por semana</label>
+          <p class="setting__desc">Regra rígida: nunca é ultrapassada.</p></div>
+        <div class="setting__control"><input class="input" type="number" id="max_dias_semana" name="max_dias_semana" min="1" max="7" value="{{ s.max_dias_semana }}"></div>
+      </div>
+      <div class="setting">
+        <div><label class="setting__title" for="tempo_calculo">Tempo máximo de cálculo</label>
+          <p class="setting__desc">Em segundos. Mais tempo pode encontrar escalas um pouco melhores.</p></div>
+        <div class="setting__control"><input class="input" type="number" id="tempo_calculo" name="tempo_calculo" min="5" max="600" value="{{ s.tempo_calculo }}"></div>
+      </div>
+      <div class="setting">
+        <div>
+          <span class="setting__title">Regra do domingo (manhã × noite)</span>
+          <p class="setting__desc">Quem <b>toca ou canta</b> no domingo de manhã <b>não pode</b> tocar ou cantar no domingo à noite do mesmo dia.</p>
+          <ul class="checklist checklist--muted mt-2 text-sm">
+            <li>{{ icon('check', 'sm') }}<span><b>Exceção:</b> se o culto estiver marcado como <b>“banda fixa”</b> (página Cultos), a regra não vale para aquele domingo.</span></li>
+            <li>{{ icon('check', 'sm') }}<span><b>Intercessão não conta:</b> quem toca de manhã pode estar na intercessão à noite (e vice-versa).</span></li>
+            <li>{{ icon('check', 'sm') }}<span><b>Louvor Kids conta:</b> quem está no Kids de manhã não toca/canta à noite (e vice-versa).</span></li>
+            <li>{{ icon('check', 'sm') }}<span><b>Som, mídia e luz não contam:</b> funções do tipo “Outra” (ex.: Técnico de Som) podem estar de manhã e à noite.</span></li>
+          </ul>
+        </div>
+        <div class="setting__control">{{ badge('Regra fixa · sempre ativa', 'success', dot=True) }}</div>
+      </div>
+    </div>
+    <div class="card__footer"><button class="btn btn--primary">{{ icon('save', 'sm') }}Salvar</button></div>
+  </form>
+
+  <section class="card card--muted" aria-labelledby="como-decide">
+    <div class="card__header"><h2 class="card__title" id="como-decide">{{ icon('info') }}Como o sistema decide</h2></div>
+    <div class="card__body stack">
+      <div>
+        <h3 class="text-md mb-4">Nunca viola</h3>
+        <ul class="checklist">
+          {% for t in ['Indisponibilidades marcadas no link pessoal', 'No mesmo culto, no máximo 1 instrumento e 1 voz (pode ministrar junto)',
+                       'Máximo de dias por semana', 'Regra do domingo', 'Limite mensal individual',
+                       'Regras personalizadas obrigatórias'] %}
+          <li>{{ icon('shield', 'sm') }}{{ t }}</li>{% endfor %}
+        </ul>
+      </div>
+      <hr class="mt-0 mb-0">
+      <div>
+        <h3 class="text-md mb-4">Tenta ao máximo</h3>
+        <ul class="checklist checklist--muted">
+          {% for t in ['Preencher todas as vagas', 'Distribuir de forma justa', 'Reduzir o limite de quem tocou muito no mês anterior',
+                       'Evitar dias seguidos', 'Manter duplas juntas (no Louvor Kids, o casal fica junto: um toca, o outro canta)',
+                       'Intercessão em rodízio, sem repetir as mesmas pessoas', 'Regras personalizadas de preferência'] %}
+          <li>{{ icon('target', 'sm') }}{{ t }}</li>{% endfor %}
+        </ul>
+      </div>
+      <hr class="mt-0 mb-0">
+      <div>
+        <h3 class="text-md mb-4">Escalados automaticamente</h3>
+        <ul class="checklist checklist--muted">
+          <li>{{ icon('zap', 'sm') }}<span><b>Louvor Kids</b>, todo domingo (manhã e noite): 1 pessoa que toca (Guitarra, Violão ou Teclado) e 1 que canta (Ministro, Soprano, Contralto ou Tenor). Conta como participação.</span></li>
+          <li>{{ icon('zap', 'sm') }}<span><b>Intercessão</b>, todo culto: 2 pessoas, qualquer pessoa ativa. Não conta no limite de cultos nem nos dias por semana.</span></li>
+          <li>{{ icon('zap', 'sm') }}<span>Quem está no Kids ou na Intercessão não toca/canta na banda daquele culto.</span></li>
+          <li>{{ icon('zap', 'sm') }}<span>A mesma pessoa pode ministrar, cantar e tocar no mesmo culto (ex.: Ministro + Tenor + Violão), mas nunca dois instrumentos ou duas vozes. Conta como 1 culto no limite do mês.</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</div>
+
+{# ================= Funções ================= #}
+<section class="card mt-6" id="funcoes" aria-labelledby="t-funcoes">
+  <div class="card__header">
+    <h2 class="card__title" id="t-funcoes">{{ icon('music') }}Funções <span class="text-muted num">({{ fixed_roles|length + role_usage|length }})</span></h2>
+    <p class="card__desc">As fixas sempre existem. As criadas por você só entram na escala nos cultos em que forem marcadas (Meses → Cultos). O tipo diz se ela acumula: no mesmo culto a pessoa pode ter <b>1 instrumento</b> e <b>1 voz</b> e ainda ministrar; “Outra” (ex.: Técnico de Som) não acumula com nada.</p>
+  </div>
+  <div class="card__body stack">
+    <div>
+      <div class="text-sm text-muted mb-2">Fixas</div>
+      <div class="badges">{% for r in fixed_roles %}{{ badge(r, 'primary') }}{% endfor %}</div>
+    </div>
+    <div>
+      <div class="text-sm text-muted mb-2">Criadas por você</div>
+      {% if role_usage %}
+      <ul class="list">
+        {% for r, u in role_usage.items() %}
+        {%- set items = [] -%}
+        {%- if u.pessoas %}{% set _ = items.append('desmarcada de %d pessoa%s'|format(u.pessoas, '' if u.pessoas == 1 else 's')) %}{% endif -%}
+        {%- if u.cultos %}{% set _ = items.append('retirada de %d culto%s'|format(u.cultos, '' if u.cultos == 1 else 's')) %}{% endif -%}
+        {%- if u.escalas %}{% set _ = items.append('%d lugar%s na escala apagado%s'|format(u.escalas, '' if u.escalas == 1 else 'es', '' if u.escalas == 1 else 's')) %}{% endif -%}
+        {%- if u.regras %}{% set _ = items.append('%d regra%s personalizada%s excluída%s'|format(u.regras, '' if u.regras == 1 else 's', '' if u.regras == 1 else 's', '' if u.regras == 1 else 's')) %}{% endif -%}
+        <li class="list__item role-item">
+          <span class="list__main"><b class="text-md">{{ r }}</b>
+            <span class="text-sm text-muted block">{{ u.pessoas }} pessoa{{ 's' if u.pessoas != 1 }} cadastrada{{ 's' if u.pessoas != 1 }} · marcada em {{ u.cultos }} culto{{ 's' if u.cultos != 1 }}{% if u.qtd > 1 %} · {{ u.qtd }} por culto{% endif %}</span></span>
+          <form method="post" action="{{ url_for('role_type') }}" class="role-type">
+            <input type="hidden" name="nome" value="{{ r }}">
+            <label class="role-type__field"><span class="text-sm text-muted">Tipo</span>
+              <select class="select select--sm select--auto" name="tipo">{% for k, v in role_types.items() %}<option value="{{ k }}"{% if k == u.tipo %} selected{% endif %}>{{ v }}</option>{% endfor %}</select></label>
+            <label class="role-type__field"><span class="text-sm text-muted">Pessoas por culto</span>
+              <select class="select select--sm select--auto" name="qtd">{% for q in range(1, 6) %}<option value="{{ q }}"{% if q == u.qtd %} selected{% endif %}>{{ q }}</option>{% endfor %}</select></label>
+            <label class="role-type__check"><input type="checkbox" name="padrao" value="1"{% if u.padrao %} checked{% endif %}> <span class="text-sm">Entra nos cultos novos</span></label>
+            <button class="btn btn--outline btn--sm">Salvar</button>
+            <button class="btn btn--ghost btn--sm" name="acao" value="todos" formnovalidate
+              data-confirm="Marcar {{ r }} em todos os cultos?" data-confirm-tone="primary" data-confirm-icon="calendar"
+              data-confirm-text="A função passa a ser necessária em todos os cultos já cadastrados. Depois, gere a escala de novo para preencher as vagas."
+              data-confirm-ok="Marcar em todos">Marcar em todos os cultos</button>
+          </form>
+          <form method="post" action="{{ url_for('role_delete') }}"
+                data-confirm="Excluir a função {{ r }}?"
+                data-confirm-text="{{ 'Ela será:' if items else 'Ninguém usa esta função ainda.' }}"
+                data-confirm-items='{{ items|tojson }}'
+                data-confirm-hint="Não dá para desfazer. As pessoas continuam cadastradas com as outras funções."
+                data-confirm-ok="Excluir função">
+            <input type="hidden" name="nome" value="{{ r }}">
+            <button class="btn btn--ghost btn--sm btn--icon btn--icon-danger" aria-label="Excluir a função {{ r }}" data-tooltip="Excluir">{{ icon('trash', 'sm') }}</button>
+          </form>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="text-md text-muted">Nenhuma ainda.</p>
+      {% endif %}
+    </div>
+  </div>
+  <form method="post" action="{{ url_for('role_new') }}" class="card__footer" data-busy>
+    <label class="sr-only" for="nova-funcao">Nome da nova função</label>
+    <input class="input input--auto" type="text" id="nova-funcao" name="nome" maxlength="30" required placeholder="Ex.: Saxofone, Back vocal" autocomplete="off">
+    <label class="sr-only" for="nova-funcao-tipo">Tipo</label>
+    <select class="select select--auto" id="nova-funcao-tipo" name="tipo">{% for k, v in role_types.items() %}<option value="{{ k }}"{% if k == 'instrumento' %} selected{% endif %}>{{ v }}</option>{% endfor %}</select>
+    <button class="btn btn--outline">{{ icon('plus', 'sm') }}Criar função</button>
+  </form>
+</section>
+
+{# ================= Regras personalizadas ================= #}
+{%- set kind_icon = {'nunca_juntos': 'ban', 'bloquear_turno': 'lock', 'fixar': 'target', 'minimo': 'chart'} -%}
+<div class="split mt-6">
+  <section class="card" id="regras-personalizadas" aria-labelledby="t-regras">
+    <div class="card__header">
+      <h2 class="card__title" id="t-regras">{{ icon('clipboard') }}Regras personalizadas <span class="text-muted num">({{ regras|length }})</span></h2>
+      <p class="card__desc">Aplicadas ao gerar a escala e conferidas em “Conflitos com regras”. Pausar mantém a regra guardada sem aplicar.</p>
+    </div>
+    <div class="card__body">
+      {% if regras %}
+      <ul class="list">
+        {% for r in regras %}
+        <li class="list__item rule{% if not r.active %} is-paused{% endif %}">
+          <span class="stat__icon">{{ icon(kind_icon.get(r.kind, 'clipboard')) }}</span>
+          <div class="list__main">
+            <div class="rule__desc">{{ r.desc }}</div>
+            <div class="badges mt-2">
+              {{ badge(kinds[r.kind], 'outline') }}
+              {% if r.hard %}{{ badge('Obrigatória', 'danger', dot=True) }}{% else %}{{ badge('Preferência', 'info', dot=True) }}{% endif %}
+              {% if not r.active %}{{ badge('Pausada', 'warning') }}{% endif %}
+            </div>
+            {% if r.note %}<p class="text-sm text-muted mt-2">{{ r.note }}</p>{% endif %}
+          </div>
+          <form method="post" action="{{ url_for('rule_action', rid=r.id) }}" class="cluster rule__actions">
+            {% if r.active %}<button class="btn btn--ghost btn--sm" name="acao" value="pausar">Pausar</button>
+            {% else %}<button class="btn btn--outline btn--sm" name="acao" value="ativar">Ativar</button>{% endif %}
+            <button class="btn btn--danger btn--sm" name="acao" value="excluir" data-confirm="Excluir esta regra?" data-confirm-text="{{ r.desc }}" data-confirm-hint="Se quiser só suspender por um tempo, use “Pausar”." data-confirm-ok="Excluir regra" aria-label="Excluir regra">{{ icon('trash', 'sm') }}</button>
+          </form>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      {{ empty('clipboard', 'Nenhuma regra personalizada', 'Crie a primeira no formulário ao lado.') }}
+      {% endif %}
+    </div>
+  </section>
+
+  <form method="post" action="{{ url_for('rule_new') }}" class="card" id="nova-regra" data-rule-form>
+    <div class="card__header"><h2 class="card__title">{{ icon('plus') }}Nova regra</h2></div>
+    <div class="card__body stack">
+      <fieldset class="fieldset">
+        <legend class="label mb-4">Tipo de regra</legend>
+        <div class="rule-kinds">
+          {% for k, label in kinds.items() %}
+          <label class="rule-kind"><input type="radio" name="kind" value="{{ k }}" {% if loop.first %}checked{% endif %}>
+            <span>{{ icon(kind_icon[k], 'sm') }}<b>{{ label }}</b>
+              <small>{{ {'nunca_juntos': 'Duas pessoas nunca no mesmo culto',
+                         'bloquear_turno': 'Pessoa não toca em um dia/turno',
+                         'fixar': 'Pessoa sempre numa função em um dia/turno',
+                         'minimo': 'Pessoa toca pelo menos N vezes no mês'}[k] }}</small></span></label>
+          {% endfor %}
+        </div>
+      </fieldset>
+
+      <div class="grid-2">
+        <div class="field" data-kinds="nunca_juntos bloquear_turno fixar minimo">
+          <label class="label" for="r-a">Pessoa</label>
+          <select class="select" id="r-a" name="person_a"><option value="">Escolha…</option>{% for p in pessoas %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}</select>
+        </div>
+        <div class="field" data-kinds="nunca_juntos">
+          <label class="label" for="r-b">Nunca junto com</label>
+          <select class="select" id="r-b" name="person_b"><option value="">Escolha…</option>{% for p in pessoas %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}</select>
+        </div>
+        <div class="field" data-kinds="fixar">
+          <label class="label" for="r-role">Função</label>
+          <select class="select" id="r-role" name="role"><option value="">Escolha…</option>{% for r in BAND %}<option>{{ r }}</option>{% endfor %}<optgroup label="Automáticas">{% for r in AUTO %}<option>{{ r }}</option>{% endfor %}</optgroup></select>
+        </div>
+        <div class="field" data-kinds="bloquear_turno fixar">
+          <label class="label" for="r-wd">Dia da semana</label>
+          <select class="select" id="r-wd" name="weekday"><option value="">Escolha…</option>{% for i in [6,0,1,2,3,4,5] %}<option value="{{ i }}">{{ WD[i] }}</option>{% endfor %}</select>
+        </div>
+        <div class="field" data-kinds="bloquear_turno fixar">
+          <label class="label" for="r-turn">Turno</label>
+          <select class="select" id="r-turn" name="turn"><option value="">Qualquer turno</option><option>Manhã</option><option>Noite</option></select>
+          <p class="help">Manhã só existe aos domingos.</p>
+        </div>
+        <div class="field" data-kinds="minimo">
+          <label class="label" for="r-n">Mínimo de cultos no mês</label>
+          <input class="input input--narrow" type="number" id="r-n" name="n" min="1" max="31" value="2">
+        </div>
+      </div>
+
+      <fieldset class="fieldset">
+        <legend class="label mb-4">Rigidez</legend>
+        <div class="chips">
+          <label class="chip"><input type="radio" name="hard" value="1" checked><span>Obrigatória</span></label>
+          <label class="chip"><input type="radio" name="hard" value="0"><span>Preferência</span></label>
+        </div>
+        <p class="help mt-2"><b>Obrigatória:</b> o sistema não quebra a regra (em “fixar” e “mínimo”, ela vem antes de tudo; se for impossível, a escala avisa). <b>Preferência:</b> tenta cumprir, mas pode ceder para não deixar vaga.</p>
+      </fieldset>
+
+      <div class="field">
+        <label class="label" for="r-note">Observação <span class="text-muted">(opcional)</span></label>
+        <input class="input" type="text" id="r-note" name="note" maxlength="200" placeholder="Ex.: combinado com a liderança em nov/2026">
+      </div>
+
+      <div class="alert alert--info" data-rule-preview hidden>{{ icon('info') }}<div class="alert__body"></div></div>
+    </div>
+    <div class="card__footer"><button class="btn btn--primary btn--block">{{ icon('plus', 'sm') }}Criar regra</button></div>
+  </form>
+</div>
+<script src="{{ url_for('static', filename='js/rules.js') }}" defer></script>
+{% endblock %}
